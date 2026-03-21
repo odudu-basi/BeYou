@@ -6,6 +6,31 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F00E07352F5E659200DBA69D /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07342F5E659200DBA69D /* DeviceActivity.framework */; };
+		F00E073D2F5E659200DBA69D /* BeYouDeviceActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00E07322F5E659100DBA69D /* BeYouDeviceActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F00E074D2F5E669800DBA69D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07442F5E661700DBA69D /* ManagedSettings.framework */; };
+		F00E074F2F5E669800DBA69D /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E074E2F5E669800DBA69D /* ManagedSettingsUI.framework */; };
+		F00E07572F5E669900DBA69D /* BeYouShieldConfiguration.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00E074C2F5E669800DBA69D /* BeYouShieldConfiguration.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F00E075C2F5E670000DBA69D /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07462F5E662000DBA69D /* FamilyControls.framework */; };
+		F00E075D2F5E673600DBA69D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07442F5E661700DBA69D /* ManagedSettings.framework */; };
+		F00E075E2F5E674100DBA69D /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07462F5E662000DBA69D /* FamilyControls.framework */; };
+		F00E07772F5EA4EC00DBA69D /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07462F5E662000DBA69D /* FamilyControls.framework */; settings = {ATTRIBUTES = (Required, ); }; };
+		F00E07782F5EA4F500DBA69D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07442F5E661700DBA69D /* ManagedSettings.framework */; };
+		F00E07792F5EA4FC00DBA69D /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07342F5E659200DBA69D /* DeviceActivity.framework */; };
+		F00E077B2F5EA50500DBA69D /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E077A2F5EA50400DBA69D /* UserNotifications.framework */; };
+		F00E07AB2F5F252400DBA69D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07442F5E661700DBA69D /* ManagedSettings.framework */; };
+		F00E07B32F5F252400DBA69D /* BeYouShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00E07AA2F5F252400DBA69D /* BeYouShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F075BCF52F664F4E000E1153 /* Mixpanel in Frameworks */ = {isa = PBXBuildFile; productRef = F075BCF42F664F4E000E1153 /* Mixpanel */; };
+		F075BCF82F6670E0000E1153 /* MixpanelSessionReplay in Frameworks */ = {isa = PBXBuildFile; productRef = F075BCF72F6670E0000E1153 /* MixpanelSessionReplay */; };
+		F08123752F61115A0001263B /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = F08123742F61115A0001263B /* RevenueCat */; };
+		F08123782F6117790001263B /* SuperwallKit in Frameworks */ = {isa = PBXBuildFile; productRef = F08123772F6117790001263B /* SuperwallKit */; };
+		F08124532F6288FC0001263B /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08124522F6288FC0001263B /* WidgetKit.framework */; };
+		F08124552F6288FC0001263B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08124542F6288FC0001263B /* SwiftUI.framework */; };
+		F08124662F6288FE0001263B /* BeYouWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F0FCAC702F6CB83D006EDFD6 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F00E05DE2F5E0C9D00DBA69D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,17 +46,132 @@
 			remoteGlobalIDString = F00E05CF2F5E0C9A00DBA69D;
 			remoteInfo = BeYou;
 		};
+		F00E073B2F5E659200DBA69D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00E05C82F5E0C9A00DBA69D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F00E07312F5E659100DBA69D;
+			remoteInfo = BeYouDeviceActivityMonitor;
+		};
+		F00E07552F5E669800DBA69D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00E05C82F5E0C9A00DBA69D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F00E074B2F5E669800DBA69D;
+			remoteInfo = BeYouShieldConfiguration;
+		};
+		F00E07B12F5F252400DBA69D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00E05C82F5E0C9A00DBA69D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F00E07A92F5F252400DBA69D;
+			remoteInfo = BeYouShieldAction;
+		};
+		F08124642F6288FE0001263B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00E05C82F5E0C9A00DBA69D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F08124502F6288FB0001263B;
+			remoteInfo = BeYouWidgetsExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F00E07422F5E659200DBA69D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F00E07B32F5F252400DBA69D /* BeYouShieldAction.appex in Embed Foundation Extensions */,
+				F00E073D2F5E659200DBA69D /* BeYouDeviceActivityMonitor.appex in Embed Foundation Extensions */,
+				F00E07572F5E669900DBA69D /* BeYouShieldConfiguration.appex in Embed Foundation Extensions */,
+				F08124662F6288FE0001263B /* BeYouWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E078E2F5F23F700DBA69D /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		F00E05D02F5E0C9A00DBA69D /* BeYou.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeYou.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00E05DD2F5E0C9D00DBA69D /* BeYouTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeYouTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00E05E72F5E0C9D00DBA69D /* BeYouUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeYouUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00E07322F5E659100DBA69D /* BeYouDeviceActivityMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeYouDeviceActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00E07342F5E659200DBA69D /* DeviceActivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceActivity.framework; path = System/Library/Frameworks/DeviceActivity.framework; sourceTree = SDKROOT; };
+		F00E07442F5E661700DBA69D /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
+		F00E07462F5E662000DBA69D /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
+		F00E074C2F5E669800DBA69D /* BeYouShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeYouShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00E074E2F5E669800DBA69D /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
+		F00E077A2F5EA50400DBA69D /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		F00E07AA2F5F252400DBA69D /* BeYouShieldAction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeYouShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeYouWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F08124522F6288FC0001263B /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		F08124542F6288FC0001263B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F00E06882F5E15DD00DBA69D /* Exceptions for "BeYou" folder in "BeYou" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F00E05CF2F5E0C9A00DBA69D /* BeYou */;
+		};
+		F00E07412F5E659200DBA69D /* Exceptions for "BeYouDeviceActivityMonitor" folder in "BeYouDeviceActivityMonitor" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F00E07312F5E659100DBA69D /* BeYouDeviceActivityMonitor */;
+		};
+		F00E075B2F5E669900DBA69D /* Exceptions for "BeYouShieldConfiguration" folder in "BeYouShieldConfiguration" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F00E074B2F5E669800DBA69D /* BeYouShieldConfiguration */;
+		};
+		F00E07B72F5F252400DBA69D /* Exceptions for "BeYouShieldAction" folder in "BeYouShieldAction" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F00E07A92F5F252400DBA69D /* BeYouShieldAction */;
+		};
+		F081246A2F6288FE0001263B /* Exceptions for "BeYouWidgets" folder in "BeYouWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F08124502F6288FB0001263B /* BeYouWidgetsExtension */;
+		};
+		F08124752F628A520001263B /* Exceptions for "BeYou" folder in "BeYouWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				affirmations.json,
+			);
+			target = F08124502F6288FB0001263B /* BeYouWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F00E05D22F5E0C9A00DBA69D /* BeYou */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F00E06882F5E15DD00DBA69D /* Exceptions for "BeYou" folder in "BeYou" target */,
+				F08124752F628A520001263B /* Exceptions for "BeYou" folder in "BeYouWidgetsExtension" target */,
+			);
 			path = BeYou;
 			sourceTree = "<group>";
 		};
@@ -45,6 +185,38 @@
 			path = BeYouUITests;
 			sourceTree = "<group>";
 		};
+		F00E07362F5E659200DBA69D /* BeYouDeviceActivityMonitor */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F00E07412F5E659200DBA69D /* Exceptions for "BeYouDeviceActivityMonitor" folder in "BeYouDeviceActivityMonitor" target */,
+			);
+			path = BeYouDeviceActivityMonitor;
+			sourceTree = "<group>";
+		};
+		F00E07502F5E669800DBA69D /* BeYouShieldConfiguration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F00E075B2F5E669900DBA69D /* Exceptions for "BeYouShieldConfiguration" folder in "BeYouShieldConfiguration" target */,
+			);
+			path = BeYouShieldConfiguration;
+			sourceTree = "<group>";
+		};
+		F00E07AC2F5F252400DBA69D /* BeYouShieldAction */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F00E07B72F5F252400DBA69D /* Exceptions for "BeYouShieldAction" folder in "BeYouShieldAction" target */,
+			);
+			path = BeYouShieldAction;
+			sourceTree = "<group>";
+		};
+		F08124562F6288FC0001263B /* BeYouWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F081246A2F6288FE0001263B /* Exceptions for "BeYouWidgets" folder in "BeYouWidgetsExtension" target */,
+			);
+			path = BeYouWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +224,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F00E077B2F5EA50500DBA69D /* UserNotifications.framework in Frameworks */,
+				F00E07792F5EA4FC00DBA69D /* DeviceActivity.framework in Frameworks */,
+				F075BCF52F664F4E000E1153 /* Mixpanel in Frameworks */,
+				F08123752F61115A0001263B /* RevenueCat in Frameworks */,
+				F075BCF82F6670E0000E1153 /* MixpanelSessionReplay in Frameworks */,
+				F0FCAC702F6CB83D006EDFD6 /* RevenueCatUI in Frameworks */,
+				F00E07782F5EA4F500DBA69D /* ManagedSettings.framework in Frameworks */,
+				F00E07772F5EA4EC00DBA69D /* FamilyControls.framework in Frameworks */,
+				F08123782F6117790001263B /* SuperwallKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,6 +250,43 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F00E072F2F5E659100DBA69D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F00E075E2F5E674100DBA69D /* FamilyControls.framework in Frameworks */,
+				F00E075D2F5E673600DBA69D /* ManagedSettings.framework in Frameworks */,
+				F00E07352F5E659200DBA69D /* DeviceActivity.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E07492F5E669800DBA69D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F00E075C2F5E670000DBA69D /* FamilyControls.framework in Frameworks */,
+				F00E074D2F5E669800DBA69D /* ManagedSettings.framework in Frameworks */,
+				F00E074F2F5E669800DBA69D /* ManagedSettingsUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E07A72F5F252400DBA69D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F00E07AB2F5F252400DBA69D /* ManagedSettings.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F081244E2F6288FB0001263B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F08124552F6288FC0001263B /* SwiftUI.framework in Frameworks */,
+				F08124532F6288FC0001263B /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +296,11 @@
 				F00E05D22F5E0C9A00DBA69D /* BeYou */,
 				F00E05E02F5E0C9D00DBA69D /* BeYouTests */,
 				F00E05EA2F5E0C9D00DBA69D /* BeYouUITests */,
+				F00E07362F5E659200DBA69D /* BeYouDeviceActivityMonitor */,
+				F00E07502F5E669800DBA69D /* BeYouShieldConfiguration */,
+				F00E07AC2F5F252400DBA69D /* BeYouShieldAction */,
+				F08124562F6288FC0001263B /* BeYouWidgets */,
+				F00E07332F5E659200DBA69D /* Frameworks */,
 				F00E05D12F5E0C9A00DBA69D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,8 +311,26 @@
 				F00E05D02F5E0C9A00DBA69D /* BeYou.app */,
 				F00E05DD2F5E0C9D00DBA69D /* BeYouTests.xctest */,
 				F00E05E72F5E0C9D00DBA69D /* BeYouUITests.xctest */,
+				F00E07322F5E659100DBA69D /* BeYouDeviceActivityMonitor.appex */,
+				F00E074C2F5E669800DBA69D /* BeYouShieldConfiguration.appex */,
+				F00E07AA2F5F252400DBA69D /* BeYouShieldAction.appex */,
+				F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		F00E07332F5E659200DBA69D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F00E077A2F5EA50400DBA69D /* UserNotifications.framework */,
+				F00E07462F5E662000DBA69D /* FamilyControls.framework */,
+				F00E07442F5E661700DBA69D /* ManagedSettings.framework */,
+				F00E07342F5E659200DBA69D /* DeviceActivity.framework */,
+				F00E074E2F5E669800DBA69D /* ManagedSettingsUI.framework */,
+				F08124522F6288FC0001263B /* WidgetKit.framework */,
+				F08124542F6288FC0001263B /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -102,16 +343,27 @@
 				F00E05CC2F5E0C9A00DBA69D /* Sources */,
 				F00E05CD2F5E0C9A00DBA69D /* Frameworks */,
 				F00E05CE2F5E0C9A00DBA69D /* Resources */,
+				F00E07422F5E659200DBA69D /* Embed Foundation Extensions */,
+				F00E078E2F5F23F700DBA69D /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F00E073C2F5E659200DBA69D /* PBXTargetDependency */,
+				F00E07562F5E669800DBA69D /* PBXTargetDependency */,
+				F00E07B22F5F252400DBA69D /* PBXTargetDependency */,
+				F08124652F6288FE0001263B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				F00E05D22F5E0C9A00DBA69D /* BeYou */,
 			);
 			name = BeYou;
 			packageProductDependencies = (
+				F08123742F61115A0001263B /* RevenueCat */,
+				F08123772F6117790001263B /* SuperwallKit */,
+				F075BCF42F664F4E000E1153 /* Mixpanel */,
+				F075BCF72F6670E0000E1153 /* MixpanelSessionReplay */,
+				F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */,
 			);
 			productName = BeYou;
 			productReference = F00E05D02F5E0C9A00DBA69D /* BeYou.app */;
@@ -163,6 +415,94 @@
 			productReference = F00E05E72F5E0C9D00DBA69D /* BeYouUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		F00E07312F5E659100DBA69D /* BeYouDeviceActivityMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00E073E2F5E659200DBA69D /* Build configuration list for PBXNativeTarget "BeYouDeviceActivityMonitor" */;
+			buildPhases = (
+				F00E072E2F5E659100DBA69D /* Sources */,
+				F00E072F2F5E659100DBA69D /* Frameworks */,
+				F00E07302F5E659100DBA69D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F00E07362F5E659200DBA69D /* BeYouDeviceActivityMonitor */,
+			);
+			name = BeYouDeviceActivityMonitor;
+			packageProductDependencies = (
+			);
+			productName = BeYouDeviceActivityMonitor;
+			productReference = F00E07322F5E659100DBA69D /* BeYouDeviceActivityMonitor.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F00E074B2F5E669800DBA69D /* BeYouShieldConfiguration */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00E07582F5E669900DBA69D /* Build configuration list for PBXNativeTarget "BeYouShieldConfiguration" */;
+			buildPhases = (
+				F00E07482F5E669800DBA69D /* Sources */,
+				F00E07492F5E669800DBA69D /* Frameworks */,
+				F00E074A2F5E669800DBA69D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F00E07502F5E669800DBA69D /* BeYouShieldConfiguration */,
+			);
+			name = BeYouShieldConfiguration;
+			packageProductDependencies = (
+			);
+			productName = BeYouShieldConfiguration;
+			productReference = F00E074C2F5E669800DBA69D /* BeYouShieldConfiguration.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F00E07A92F5F252400DBA69D /* BeYouShieldAction */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F00E07B42F5F252400DBA69D /* Build configuration list for PBXNativeTarget "BeYouShieldAction" */;
+			buildPhases = (
+				F00E07A62F5F252400DBA69D /* Sources */,
+				F00E07A72F5F252400DBA69D /* Frameworks */,
+				F00E07A82F5F252400DBA69D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F00E07AC2F5F252400DBA69D /* BeYouShieldAction */,
+			);
+			name = BeYouShieldAction;
+			packageProductDependencies = (
+			);
+			productName = BeYouShieldAction;
+			productReference = F00E07AA2F5F252400DBA69D /* BeYouShieldAction.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		F08124502F6288FB0001263B /* BeYouWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F08124672F6288FE0001263B /* Build configuration list for PBXNativeTarget "BeYouWidgetsExtension" */;
+			buildPhases = (
+				F081244D2F6288FB0001263B /* Sources */,
+				F081244E2F6288FB0001263B /* Frameworks */,
+				F081244F2F6288FB0001263B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F08124562F6288FC0001263B /* BeYouWidgets */,
+			);
+			name = BeYouWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = BeYouWidgetsExtension;
+			productReference = F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +524,18 @@
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = F00E05CF2F5E0C9A00DBA69D;
 					};
+					F00E07312F5E659100DBA69D = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					F00E074B2F5E669800DBA69D = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					F00E07A92F5F252400DBA69D = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					F08124502F6288FB0001263B = {
+						CreatedOnToolsVersion = 26.3;
+					};
 				};
 			};
 			buildConfigurationList = F00E05CB2F5E0C9A00DBA69D /* Build configuration list for PBXProject "BeYou" */;
@@ -195,6 +547,12 @@
 			);
 			mainGroup = F00E05C72F5E0C9A00DBA69D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F08123732F61115A0001263B /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+				F08123762F6117790001263B /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
+				F075BCF32F664F4E000E1153 /* XCRemoteSwiftPackageReference "mixpanel-swift" */,
+				F075BCF62F6670E0000E1153 /* XCRemoteSwiftPackageReference "mixpanel-ios-session-replay-package" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F00E05D12F5E0C9A00DBA69D /* Products */;
 			projectDirPath = "";
@@ -203,6 +561,10 @@
 				F00E05CF2F5E0C9A00DBA69D /* BeYou */,
 				F00E05DC2F5E0C9D00DBA69D /* BeYouTests */,
 				F00E05E62F5E0C9D00DBA69D /* BeYouUITests */,
+				F00E07312F5E659100DBA69D /* BeYouDeviceActivityMonitor */,
+				F00E074B2F5E669800DBA69D /* BeYouShieldConfiguration */,
+				F00E07A92F5F252400DBA69D /* BeYouShieldAction */,
+				F08124502F6288FB0001263B /* BeYouWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -223,6 +585,34 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F00E05E52F5E0C9D00DBA69D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E07302F5E659100DBA69D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E074A2F5E669800DBA69D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E07A82F5F252400DBA69D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F081244F2F6288FB0001263B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -253,6 +643,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F00E072E2F5E659100DBA69D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E07482F5E669800DBA69D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00E07A62F5F252400DBA69D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F081244D2F6288FB0001263B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -265,6 +683,26 @@
 			isa = PBXTargetDependency;
 			target = F00E05CF2F5E0C9A00DBA69D /* BeYou */;
 			targetProxy = F00E05E82F5E0C9D00DBA69D /* PBXContainerItemProxy */;
+		};
+		F00E073C2F5E659200DBA69D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F00E07312F5E659100DBA69D /* BeYouDeviceActivityMonitor */;
+			targetProxy = F00E073B2F5E659200DBA69D /* PBXContainerItemProxy */;
+		};
+		F00E07562F5E669800DBA69D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F00E074B2F5E669800DBA69D /* BeYouShieldConfiguration */;
+			targetProxy = F00E07552F5E669800DBA69D /* PBXContainerItemProxy */;
+		};
+		F00E07B22F5F252400DBA69D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F00E07A92F5F252400DBA69D /* BeYouShieldAction */;
+			targetProxy = F00E07B12F5F252400DBA69D /* PBXContainerItemProxy */;
+		};
+		F08124652F6288FE0001263B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F08124502F6288FB0001263B /* BeYouWidgetsExtension */;
+			targetProxy = F08124642F6288FE0001263B /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -395,21 +833,25 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BeYou/BeYou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYou/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -427,21 +869,25 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = BeYou/BeYou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYou/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -538,6 +984,244 @@
 			};
 			name = Release;
 		};
+		F00E073F2F5E659200DBA69D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BeYouDeviceActivityMonitor/BeYouDeviceActivityMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouDeviceActivityMonitor/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouDeviceActivityMonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouDeviceActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F00E07402F5E659200DBA69D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BeYouDeviceActivityMonitor/BeYouDeviceActivityMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouDeviceActivityMonitor/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouDeviceActivityMonitor;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouDeviceActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F00E07592F5E669900DBA69D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BeYouShieldConfiguration/BeYouShieldConfiguration.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F00E075A2F5E669900DBA69D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BeYouShieldConfiguration/BeYouShieldConfiguration.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouShieldConfiguration/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouShieldConfiguration;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouShieldConfiguration;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F00E07B52F5F252400DBA69D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BeYouShieldAction/BeYouShieldAction.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouShieldAction/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouShieldAction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouShieldAction;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F00E07B62F5F252400DBA69D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = BeYouShieldAction/BeYouShieldAction.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouShieldAction/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouShieldAction;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouShieldAction;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F08124682F6288FE0001263B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F08124692F6288FE0001263B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BeYouWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BeYouWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou.BeYouWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -577,7 +1261,106 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		F00E073E2F5E659200DBA69D /* Build configuration list for PBXNativeTarget "BeYouDeviceActivityMonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00E073F2F5E659200DBA69D /* Debug */,
+				F00E07402F5E659200DBA69D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00E07582F5E669900DBA69D /* Build configuration list for PBXNativeTarget "BeYouShieldConfiguration" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00E07592F5E669900DBA69D /* Debug */,
+				F00E075A2F5E669900DBA69D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F00E07B42F5F252400DBA69D /* Build configuration list for PBXNativeTarget "BeYouShieldAction" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F00E07B52F5F252400DBA69D /* Debug */,
+				F00E07B62F5F252400DBA69D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F08124672F6288FE0001263B /* Build configuration list for PBXNativeTarget "BeYouWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F08124682F6288FE0001263B /* Debug */,
+				F08124692F6288FE0001263B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F075BCF32F664F4E000E1153 /* XCRemoteSwiftPackageReference "mixpanel-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mixpanel/mixpanel-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.2.0;
+			};
+		};
+		F075BCF62F6670E0000E1153 /* XCRemoteSwiftPackageReference "mixpanel-ios-session-replay-package" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mixpanel/mixpanel-ios-session-replay-package";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.3.1;
+			};
+		};
+		F08123732F61115A0001263B /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.61.0;
+			};
+		};
+		F08123762F6117790001263B /* XCRemoteSwiftPackageReference "Superwall-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/superwall/Superwall-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.14.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F075BCF42F664F4E000E1153 /* Mixpanel */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F075BCF32F664F4E000E1153 /* XCRemoteSwiftPackageReference "mixpanel-swift" */;
+			productName = Mixpanel;
+		};
+		F075BCF72F6670E0000E1153 /* MixpanelSessionReplay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F075BCF62F6670E0000E1153 /* XCRemoteSwiftPackageReference "mixpanel-ios-session-replay-package" */;
+			productName = MixpanelSessionReplay;
+		};
+		F08123742F61115A0001263B /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F08123732F61115A0001263B /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+		F08123772F6117790001263B /* SuperwallKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F08123762F6117790001263B /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
+			productName = SuperwallKit;
+		};
+		F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F08123732F61115A0001263B /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F00E05C82F5E0C9A00DBA69D /* Project object */;
 }

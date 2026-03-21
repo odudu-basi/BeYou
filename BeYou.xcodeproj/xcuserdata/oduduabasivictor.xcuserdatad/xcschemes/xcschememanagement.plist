@@ -7,7 +7,55 @@
 		<key>BeYou.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+		<key>BeYouDeviceActivityMonitor.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
 			<integer>0</integer>
+		</dict>
+		<key>BeYouShieldAction.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>4</integer>
+		</dict>
+		<key>BeYouShieldConfiguration.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+		<key>BeYouWidgetsExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>F00E05CF2F5E0C9A00DBA69D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F00E05DC2F5E0C9D00DBA69D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F00E05E62F5E0C9D00DBA69D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F00E07312F5E659100DBA69D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>F00E074B2F5E669800DBA69D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

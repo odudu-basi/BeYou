@@ -1,24 +1,28 @@
-//
-//  ContentView.swift
-//  BeYou
-//
-//  Created by Oduduabasi Victor on 3/8/26.
-//
-
 import SwiftUI
 
+@available(iOS 16.0, *)
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    @EnvironmentObject var appState: AppState
 
-#Preview {
-    ContentView()
+    var body: some View {
+        Group {
+            switch appState.currentScreen {
+            case .splash:
+                SplashView()
+            case .welcome:
+                WelcomeView()
+            case .onboarding:
+                OnboardingCoordinator()
+            case .paywall:
+                PaywallOnboardingView()
+            case .screenTimeConnect:
+                ScreenTimeConnectView()
+            case .setup:
+                SetupCoordinator()
+            case .main:
+                MainAppView()
+            }
+        }
+        .preferredColorScheme(.light)
+    }
 }

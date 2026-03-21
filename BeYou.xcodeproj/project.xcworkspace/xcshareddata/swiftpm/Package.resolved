@@ -1,0 +1,51 @@
+{
+  "originHash" : "329347c8b8775c425f67fdc5df014b3441dd4cac8348c47e5dd79ace2ce5d2a4",
+  "pins" : [
+    {
+      "identity" : "mixpanel-ios-session-replay-package",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mixpanel/mixpanel-ios-session-replay-package",
+      "state" : {
+        "revision" : "74880d2d4523cd3e0e7e4e77b6b84dbbfe22ae8e",
+        "version" : "1.3.1"
+      }
+    },
+    {
+      "identity" : "mixpanel-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mixpanel/mixpanel-swift",
+      "state" : {
+        "revision" : "5f3020832a9594d98c129bf010a2bcc9dc4fa959",
+        "version" : "5.2.0"
+      }
+    },
+    {
+      "identity" : "purchases-ios-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/RevenueCat/purchases-ios-spm.git",
+      "state" : {
+        "revision" : "d9303831a73a13178b593f2ec2d2417252542f7c",
+        "version" : "5.61.0"
+      }
+    },
+    {
+      "identity" : "superscript-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/superwall/Superscript-iOS",
+      "state" : {
+        "revision" : "711866edcb62dbd237c24ed3e5fa39fad0db639f",
+        "version" : "1.0.13"
+      }
+    },
+    {
+      "identity" : "superwall-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/superwall/Superwall-iOS.git",
+      "state" : {
+        "revision" : "aa839af572d9a85f6ec745d693019cc334473673",
+        "version" : "4.14.0"
+      }
+    }
+  ],
+  "version" : 3
+}
