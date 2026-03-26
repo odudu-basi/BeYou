@@ -20,6 +20,9 @@ struct BeYouSwiftApp: App {
 
         // Configure Mixpanel analytics
         AnalyticsManager.shared.configure()
+
+        // Configure TikTok Ads SDK
+        TikTokManager.shared.configure()
     }
 
     var body: some Scene {
@@ -44,6 +47,7 @@ struct BeYouSwiftApp: App {
                 .task {
                     // Track app open
                     AnalyticsManager.shared.trackAppOpened()
+                    TikTokManager.shared.trackAppOpen()
 
                     // Re-authorize FamilyControls on every launch
                     // Silent if already authorized; re-prompts only if lost (e.g., after update)

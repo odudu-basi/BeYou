@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import WidgetKit
 
 // MARK: - Theme Model
 
@@ -345,6 +346,9 @@ struct MotivationView: View {
             if !affirmations.isEmpty {
                 currentIndex = Int.random(in: 0..<affirmations.count)
             }
+
+            // Sync current theme to App Group for widgets
+            UserDefaults(suiteName: "group.com.odudu.BeYou")?.set(selectedThemeId, forKey: "selectedMotivationTheme")
         }
         .sheet(isPresented: $showShareSheet) {
             if let image = shareImage {
@@ -487,6 +491,9 @@ struct ThemePickerSheet: View {
                                             isSelected: selectedThemeId == theme.id,
                                             onTap: {
                                                 selectedThemeId = theme.id
+                                                // Sync to App Group so widgets can read it
+                                                UserDefaults(suiteName: "group.com.odudu.BeYou")?.set(theme.id, forKey: "selectedMotivationTheme")
+                                                WidgetCenter.shared.reloadAllTimelines()
                                             }
                                         )
                                     }
@@ -535,13 +542,16 @@ struct ThemePreviewCell: View {
             VStack(spacing: 8) {
                 ZStack {
                     previewBackground
+                        .frame(maxWidth: .infinity)
                         .frame(height: 100)
+                        .clipped()
                         .cornerRadius(14)
 
                     Text("Aa")
                         .font(.system(size: 24, weight: .heavy))
                         .foregroundColor(Color(hex: theme.textColor))
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(isSelected ? Color(hex: "1A1A1A") : Color(hex: "EBEBEB"), lineWidth: isSelected ? 3 : 1.5)

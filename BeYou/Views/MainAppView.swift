@@ -16,12 +16,8 @@ struct MainAppView: View {
                 switch selectedTab {
                 case .home:
                     HomeView()
-                case .schedules:
-                    SchedulesView()
                 case .motivation:
                     MotivationView()
-                case .screentime:
-                    ScreenTimeView()
                 case .settings:
                     SettingsView()
                 }

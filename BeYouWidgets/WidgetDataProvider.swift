@@ -144,7 +144,7 @@ struct WidgetTheme {
 
 extension WidgetDataProvider {
     static func loadSelectedThemeId() -> String {
-        UserDefaults.standard.string(forKey: "selectedMotivationTheme") ?? "starry-mountains"
+        sharedDefaults?.string(forKey: "selectedMotivationTheme") ?? "starry-mountains"
     }
 
     static func resolveTheme(id: String) -> WidgetTheme {

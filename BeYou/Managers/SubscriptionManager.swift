@@ -9,6 +9,7 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
 
     @Published var isProUser: Bool = false
     @Published var customerInfo: RevenueCat.CustomerInfo?
+    private var hasCompletedInitialSync = false
 
     private override init() {
         super.init()
@@ -57,7 +58,12 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
         let wasProUser = self.isProUser
         self.isProUser = info.entitlements["BeYou_Pro"]?.isActive == true
 
-        if !wasProUser && isProUser {
+        if !hasCompletedInitialSync {
+            // First sync on app launch — don't fire purchase event for existing subscriptions
+            hasCompletedInitialSync = true
+            print("💰 SUBS: Initial sync — isProUser: \(isProUser)")
+        } else if !wasProUser && isProUser {
+            // Genuine new purchase or restore during this session
             print("💰 SUBS: User became Pro")
             AnalyticsManager.shared.trackSubscriptionPurchased()
         } else if wasProUser && !isProUser {

@@ -2,17 +2,17 @@ import SwiftUI
 
 enum MainTab: String, CaseIterable {
     case home
-    case schedules
     case motivation
-    case screentime
     case settings
+
+    static var visibleTabs: [MainTab] {
+        [.home, .motivation, .settings]
+    }
 
     var label: String {
         switch self {
         case .home: return "Home"
-        case .schedules: return "Schedules"
         case .motivation: return "BeYou"
-        case .screentime: return "Screen Time"
         case .settings: return "Settings"
         }
     }
@@ -20,9 +20,7 @@ enum MainTab: String, CaseIterable {
     var sfSymbol: String {
         switch self {
         case .home: return "house.fill"
-        case .schedules: return "calendar"
         case .motivation: return "" // Uses logo image instead
-        case .screentime: return "hourglass"
         case .settings: return "gearshape.fill"
         }
     }
@@ -35,7 +33,7 @@ struct CustomTabBar: View {
         ZStack {
             // Tab bar background
             HStack(spacing: 0) {
-                ForEach(MainTab.allCases, id: \.self) { tab in
+                ForEach(MainTab.visibleTabs, id: \.self) { tab in
                     if tab == .motivation {
                         // Empty space for the center logo
                         Color.clear

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		EEA33FA29B17313BA63B4713 /* Pods_BeYou.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2E741397FE5C7A6B0F4FAC0 /* Pods_BeYou.framework */; };
 		F00E07352F5E659200DBA69D /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07342F5E659200DBA69D /* DeviceActivity.framework */; };
 		F00E073D2F5E659200DBA69D /* BeYouDeviceActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00E07322F5E659100DBA69D /* BeYouDeviceActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F00E074D2F5E669800DBA69D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07442F5E661700DBA69D /* ManagedSettings.framework */; };
@@ -104,6 +105,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2A9A712D92DF6F8829526289 /* Pods-BeYou.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeYou.release.xcconfig"; path = "Target Support Files/Pods-BeYou/Pods-BeYou.release.xcconfig"; sourceTree = "<group>"; };
+		D8F83D233365B79EE7F261CC /* Pods-BeYou.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BeYou.debug.xcconfig"; path = "Target Support Files/Pods-BeYou/Pods-BeYou.debug.xcconfig"; sourceTree = "<group>"; };
+		E2E741397FE5C7A6B0F4FAC0 /* Pods_BeYou.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_BeYou.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00E05D02F5E0C9A00DBA69D /* BeYou.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BeYou.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00E05DD2F5E0C9D00DBA69D /* BeYouTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeYouTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00E05E72F5E0C9D00DBA69D /* BeYouUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BeYouUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -233,6 +237,7 @@
 				F00E07782F5EA4F500DBA69D /* ManagedSettings.framework in Frameworks */,
 				F00E07772F5EA4EC00DBA69D /* FamilyControls.framework in Frameworks */,
 				F08123782F6117790001263B /* SuperwallKit in Frameworks */,
+				EEA33FA29B17313BA63B4713 /* Pods_BeYou.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,6 +295,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		69E909EEF318823252008217 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				D8F83D233365B79EE7F261CC /* Pods-BeYou.debug.xcconfig */,
+				2A9A712D92DF6F8829526289 /* Pods-BeYou.release.xcconfig */,
+			);
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		F00E05C72F5E0C9A00DBA69D = {
 			isa = PBXGroup;
 			children = (
@@ -302,6 +316,7 @@
 				F08124562F6288FC0001263B /* BeYouWidgets */,
 				F00E07332F5E659200DBA69D /* Frameworks */,
 				F00E05D12F5E0C9A00DBA69D /* Products */,
+				69E909EEF318823252008217 /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -329,6 +344,7 @@
 				F00E074E2F5E669800DBA69D /* ManagedSettingsUI.framework */,
 				F08124522F6288FC0001263B /* WidgetKit.framework */,
 				F08124542F6288FC0001263B /* SwiftUI.framework */,
+				E2E741397FE5C7A6B0F4FAC0 /* Pods_BeYou.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -340,11 +356,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F00E05F12F5E0C9D00DBA69D /* Build configuration list for PBXNativeTarget "BeYou" */;
 			buildPhases = (
+				45A06A11D1251B88F813BC1E /* [CP] Check Pods Manifest.lock */,
 				F00E05CC2F5E0C9A00DBA69D /* Sources */,
 				F00E05CD2F5E0C9A00DBA69D /* Frameworks */,
 				F00E05CE2F5E0C9A00DBA69D /* Resources */,
 				F00E07422F5E659200DBA69D /* Embed Foundation Extensions */,
 				F00E078E2F5F23F700DBA69D /* Embed ExtensionKit Extensions */,
+				40E51593E99A551D74A43555 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -386,8 +404,6 @@
 				F00E05E02F5E0C9D00DBA69D /* BeYouTests */,
 			);
 			name = BeYouTests;
-			packageProductDependencies = (
-			);
 			productName = BeYouTests;
 			productReference = F00E05DD2F5E0C9D00DBA69D /* BeYouTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -409,8 +425,6 @@
 				F00E05EA2F5E0C9D00DBA69D /* BeYouUITests */,
 			);
 			name = BeYouUITests;
-			packageProductDependencies = (
-			);
 			productName = BeYouUITests;
 			productReference = F00E05E72F5E0C9D00DBA69D /* BeYouUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -431,8 +445,6 @@
 				F00E07362F5E659200DBA69D /* BeYouDeviceActivityMonitor */,
 			);
 			name = BeYouDeviceActivityMonitor;
-			packageProductDependencies = (
-			);
 			productName = BeYouDeviceActivityMonitor;
 			productReference = F00E07322F5E659100DBA69D /* BeYouDeviceActivityMonitor.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -453,8 +465,6 @@
 				F00E07502F5E669800DBA69D /* BeYouShieldConfiguration */,
 			);
 			name = BeYouShieldConfiguration;
-			packageProductDependencies = (
-			);
 			productName = BeYouShieldConfiguration;
 			productReference = F00E074C2F5E669800DBA69D /* BeYouShieldConfiguration.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -475,8 +485,6 @@
 				F00E07AC2F5F252400DBA69D /* BeYouShieldAction */,
 			);
 			name = BeYouShieldAction;
-			packageProductDependencies = (
-			);
 			productName = BeYouShieldAction;
 			productReference = F00E07AA2F5F252400DBA69D /* BeYouShieldAction.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -497,8 +505,6 @@
 				F08124562F6288FC0001263B /* BeYouWidgets */,
 			);
 			name = BeYouWidgetsExtension;
-			packageProductDependencies = (
-			);
 			productName = BeYouWidgetsExtension;
 			productReference = F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -620,6 +626,52 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		40E51593E99A551D74A43555 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		45A06A11D1251B88F813BC1E /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-BeYou-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		F00E05CC2F5E0C9A00DBA69D /* Sources */ = {
@@ -745,7 +797,7 @@
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -809,7 +861,7 @@
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -830,12 +882,13 @@
 		};
 		F00E05F22F5E0C9D00DBA69D /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = D8F83D233365B79EE7F261CC /* Pods-BeYou.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BeYou/BeYou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -851,7 +904,26 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.7;
+				MARKETING_VERSION = 1.0.9;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					"\"AdSupport\"",
+					"-framework",
+					"\"CoreGraphics\"",
+					"-framework",
+					"\"StoreKit\"",
+					"-framework",
+					"\"TikTokBusinessSDK\"",
+					"-framework",
+					"\"UIKit\"",
+					"-framework",
+					"\"WebKit\"",
+					"-weak_framework",
+					"\"AppTrackingTransparency\"",
+					"-lc++",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -866,12 +938,13 @@
 		};
 		F00E05F32F5E0C9D00DBA69D /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 2A9A712D92DF6F8829526289 /* Pods-BeYou.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BeYou/BeYou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -887,7 +960,26 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.7;
+				MARKETING_VERSION = 1.0.9;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-framework",
+					"\"AdSupport\"",
+					"-framework",
+					"\"CoreGraphics\"",
+					"-framework",
+					"\"StoreKit\"",
+					"-framework",
+					"\"TikTokBusinessSDK\"",
+					"-framework",
+					"\"UIKit\"",
+					"-framework",
+					"\"WebKit\"",
+					"-weak_framework",
+					"\"AppTrackingTransparency\"",
+					"-ObjC",
+					"-lc++",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.odudu.BeYou;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

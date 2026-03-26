@@ -1,5 +1,6 @@
 import SwiftUI
 import FamilyControls
+import ManagedSettings
 
 @available(iOS 16.0, *)
 struct HomeView: View {
@@ -787,6 +788,30 @@ struct StreakDetailSheet: View {
         appState.onboardingData.appIntention.perAppIntentions
     }
 
+    /// Resolves a token key like "app_-123..." to a display name like "Instagram"
+    private func resolveDisplayName(_ key: String) -> String {
+        guard key.hasPrefix("app_") else { return key }
+        let mapping = SharedDataManager.shared.loadStoreKeyMapping()
+        for (displayName, tokenKey) in mapping {
+            if tokenKey == key { return displayName }
+        }
+        return key
+    }
+
+    /// Gets the streak for an app, checking both the key and resolved display name
+    private func getStreak(for key: String) -> Int {
+        // Check direct key first
+        if let streak = appState.appUsageStats.currentStreakByApp[key], streak > 0 {
+            return streak
+        }
+        // Check resolved display name
+        let displayName = resolveDisplayName(key)
+        if displayName != key {
+            return appState.appUsageStats.currentStreakByApp[displayName] ?? 0
+        }
+        return 0
+    }
+
     private var streakMessage: String {
         switch overallStreak {
         case 0: return "Start your streak today!"
@@ -845,20 +870,18 @@ struct StreakDetailSheet: View {
                                     .padding(.horizontal, 4)
 
                                 VStack(spacing: 10) {
-                                    ForEach(Array(perAppIntentions.keys.sorted()), id: \.self) { appName in
-                                        // Skip token-based keys (e.g., "app_-123456") - only show migrated display names
-                                        if !appName.hasPrefix("app_") {
-                                            let intention = perAppIntentions[appName]!
-                                            let streak = appState.appUsageStats.currentStreakByApp[appName] ?? 0
-                                            let limit = intention.timesPerDay
+                                    ForEach(Array(perAppIntentions.keys.sorted()), id: \.self) { key in
+                                        let intention = perAppIntentions[key]!
+                                        let displayName = resolveDisplayName(key)
+                                        let streak = getStreak(for: key)
+                                        let limit = intention.timesPerDay
 
-                                            AppStreakRow(
-                                                appName: appName,
-                                                tokenData: intention.appTokenData,
-                                                streak: streak,
-                                                limit: limit
-                                            )
-                                        }
+                                        AppStreakRow(
+                                            appName: displayName.hasPrefix("app_") ? "App" : displayName,
+                                            tokenData: intention.appTokenData,
+                                            streak: streak,
+                                            limit: limit
+                                        )
                                     }
                                 }
                             }
@@ -896,17 +919,29 @@ struct AppStreakRow: View {
         String(appName.prefix(1)).uppercased()
     }
 
+    private var decodedToken: ApplicationToken? {
+        guard let data = tokenData else { return nil }
+        return try? JSONDecoder().decode(ApplicationToken.self, from: data)
+    }
+
     var body: some View {
         HStack(spacing: 14) {
-            // App icon placeholder
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(appColor.opacity(0.15))
+            // App icon
+            if let token = decodedToken {
+                Label(token)
+                    .labelStyle(.iconOnly)
                     .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(appColor.opacity(0.15))
+                        .frame(width: 48, height: 48)
 
-                Text(initial)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(appColor)
+                    Text(initial)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(appColor)
+                }
             }
 
             // App info

@@ -154,7 +154,13 @@ struct DisciplineScoreWidget: Widget {
         StaticConfiguration(kind: kind, provider: DisciplineScoreProvider()) { entry in
             if #available(iOS 17.0, *) {
                 DisciplineScoreSmallView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
+                    .containerBackground(for: .widget) {
+                        LinearGradient(
+                            colors: [Color(hex: "1A1A1A"), Color(hex: "2A2A2A")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
             } else {
                 DisciplineScoreSmallView(entry: entry)
                     .padding()

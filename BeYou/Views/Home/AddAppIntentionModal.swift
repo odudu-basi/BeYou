@@ -59,6 +59,8 @@ struct AddAppIntentionModal: View {
                             if existingAppName == nil {
                                 // Select app from iOS picker
                                 Button {
+                                    // Clear previous selection so picker starts fresh
+                                    appSelection = FamilyActivitySelection()
                                     isPickerPresented = true
                                 } label: {
                                     HStack(spacing: 12) {

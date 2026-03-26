@@ -52,49 +52,28 @@ struct AffirmationProvider: TimelineProvider {
     }
 }
 
-// MARK: - Theme Background View
-
-struct ThemeBackgroundView: View {
-    let theme: WidgetTheme
-
-    var body: some View {
-        if theme.type == "image" {
-            Image(theme.background)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        } else if theme.type == "gradient", let end = theme.gradientEnd {
-            LinearGradient(
-                colors: [Color(hex: theme.background), Color(hex: end)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            Color(hex: theme.background)
-        }
-    }
-}
-
 // MARK: - Medium Widget View (Score Ring + Affirmation)
 
 struct AffirmationMediumView: View {
     let entry: AffirmationEntry
 
-    private var textColor: Color { Color(hex: entry.theme.textColor) }
-    private var accentColor: Color { Color(hex: entry.theme.accentColor) }
-
     var body: some View {
         ZStack {
-            ThemeBackgroundView(theme: entry.theme)
-                .clipped()
-
-            // Dark overlay for readability
-            Color.black.opacity(0.2)
+            // Dark background matching small widget
+            ContainerRelativeShape()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "1A1A1A"), Color(hex: "2A2A2A")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
             HStack(spacing: 16) {
                 // Score ring on the left
                 ZStack {
                     Circle()
-                        .stroke(textColor.opacity(0.15), lineWidth: 8)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 8)
 
                     Circle()
                         .trim(from: 0, to: Double(entry.score) / 100.0)
@@ -107,11 +86,11 @@ struct AffirmationMediumView: View {
                     VStack(spacing: 0) {
                         Text("\(entry.score)")
                             .font(.system(size: 26, weight: .bold, design: .rounded))
-                            .foregroundColor(textColor)
+                            .foregroundColor(.white)
 
                         Text("score")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(textColor.opacity(0.6))
+                            .foregroundColor(Color.white.opacity(0.5))
                             .textCase(.uppercase)
                             .tracking(0.5)
                     }
@@ -121,7 +100,7 @@ struct AffirmationMediumView: View {
 
                 // Divider line
                 Rectangle()
-                    .fill(textColor.opacity(0.2))
+                    .fill(Color.white.opacity(0.15))
                     .frame(width: 1)
                     .padding(.vertical, 16)
 
@@ -129,7 +108,7 @@ struct AffirmationMediumView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(entry.affirmation.uppercased())
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(textColor)
+                        .foregroundColor(.white)
                         .lineSpacing(3)
                         .tracking(0.3)
                         .lineLimit(4)
@@ -140,10 +119,10 @@ struct AffirmationMediumView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "sparkles")
                             .font(.system(size: 9))
-                            .foregroundColor(textColor.opacity(0.5))
+                            .foregroundColor(Color.white.opacity(0.4))
                         Text("BeYou")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(textColor.opacity(0.5))
+                            .foregroundColor(Color.white.opacity(0.4))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -166,15 +145,17 @@ struct AffirmationMediumView: View {
 struct AffirmationLargeView: View {
     let entry: AffirmationEntry
 
-    private var textColor: Color { Color(hex: entry.theme.textColor) }
-
     var body: some View {
         ZStack {
-            ThemeBackgroundView(theme: entry.theme)
-                .clipped()
-
-            // Dark overlay for readability
-            Color.black.opacity(0.2)
+            // Dark background matching small widget
+            ContainerRelativeShape()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "1A1A1A"), Color(hex: "2A2A2A")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
             VStack(spacing: 0) {
                 Spacer()
@@ -182,13 +163,13 @@ struct AffirmationLargeView: View {
                 // Decorative quote mark
                 Text("\u{201C}")
                     .font(.system(size: 56, weight: .bold, design: .serif))
-                    .foregroundColor(textColor.opacity(0.2))
+                    .foregroundColor(Color.white.opacity(0.15))
                     .offset(y: 10)
 
                 // Affirmation text
                 Text(entry.affirmation.uppercased())
                     .font(.system(size: 20, weight: .heavy))
-                    .foregroundColor(textColor)
+                    .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineSpacing(6)
                     .tracking(0.5)
@@ -202,7 +183,7 @@ struct AffirmationLargeView: View {
                     // Mini score ring
                     ZStack {
                         Circle()
-                            .stroke(textColor.opacity(0.1), lineWidth: 3)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 3)
 
                         Circle()
                             .trim(from: 0, to: Double(entry.score) / 100.0)
@@ -214,13 +195,13 @@ struct AffirmationLargeView: View {
 
                         Text("\(entry.score)")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundColor(textColor)
+                            .foregroundColor(.white)
                     }
                     .frame(width: 32, height: 32)
 
                     Text("Discipline")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(textColor.opacity(0.5))
+                        .foregroundColor(Color.white.opacity(0.5))
 
                     Spacer()
 
@@ -230,7 +211,7 @@ struct AffirmationLargeView: View {
                         Text("BeYou")
                             .font(.system(size: 12, weight: .semibold))
                     }
-                    .foregroundColor(textColor.opacity(0.4))
+                    .foregroundColor(Color.white.opacity(0.4))
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 20)
@@ -254,7 +235,13 @@ struct AffirmationWidget: Widget {
         StaticConfiguration(kind: kind, provider: AffirmationProvider()) { entry in
             if #available(iOS 17.0, *) {
                 WidgetEntryView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
+                    .containerBackground(for: .widget) {
+                        LinearGradient(
+                            colors: [Color(hex: "1A1A1A"), Color(hex: "2A2A2A")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
             } else {
                 WidgetEntryView(entry: entry)
             }

@@ -34,6 +34,7 @@ enum OnboardingStep: Int, CaseIterable {
     case reality
     case categories
     case iconStyle
+    case commitment
 
     var next: OnboardingStep? {
         let allCases = Self.allCases
@@ -63,7 +64,7 @@ struct OnboardingCoordinator: View {
         return currentStep.rawValue + 1
     }
 
-    private let totalSteps = 33
+    private let totalSteps = 34
 
     var body: some View {
         Group {
@@ -133,7 +134,9 @@ struct OnboardingCoordinator: View {
             case .categories:
                 OnboardingCategoriesView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: advance, onBack: goBack)
             case .iconStyle:
-                OnboardingIconStyleView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: finishOnboarding, onBack: goBack)
+                OnboardingIconStyleView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: advance, onBack: goBack)
+            case .commitment:
+                OnboardingCommitmentView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: finishOnboarding, onBack: goBack)
             }
         }
         .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
