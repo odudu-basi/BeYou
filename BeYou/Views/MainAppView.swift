@@ -36,8 +36,11 @@ struct MainAppView: View {
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 checkForPendingIntervention()
-                // Re-apply blocks for apps whose unlock timers expired while in background
-                screenTimeManager.reapplyAllBlocks(appState: appState)
+                // Delay re-applying blocks to allow unlock state to fully persist
+                // Prevents race condition where reapply reads stale data after intervention
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    screenTimeManager.reapplyAllBlocks(appState: appState)
+                }
             }
         }
         .onChange(of: appState.isInterventionActive) { isActive in
