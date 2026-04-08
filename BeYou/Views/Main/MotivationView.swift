@@ -542,15 +542,13 @@ struct ThemePreviewCell: View {
             VStack(spacing: 8) {
                 ZStack {
                     previewBackground
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 100)
-                        .clipped()
-                        .cornerRadius(14)
 
                     Text("Aa")
                         .font(.system(size: 24, weight: .heavy))
                         .foregroundColor(Color(hex: theme.textColor))
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: 100)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)

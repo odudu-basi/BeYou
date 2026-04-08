@@ -174,6 +174,9 @@ struct AppIntentionsSection: View {
         SharedDataManager.shared.saveOnboardingData(appState.onboardingData)
         SharedDataManager.shared.saveUsageStats(appState.appUsageStats)
 
+        // Cancel streak warning since user now has an intention
+        NotificationManager.shared.cancelStreakWarningNotification()
+
         // Track analytics
         AnalyticsManager.shared.trackAppIntentionCreated(
             appName: appName,

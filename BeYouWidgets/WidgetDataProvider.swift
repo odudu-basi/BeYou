@@ -11,6 +11,8 @@ struct WidgetDataProvider {
     // MARK: - Discipline Score
 
     static func loadDisciplineScore() -> Int {
+        // Force refresh from disk to avoid stale cached data
+        sharedDefaults?.synchronize()
         guard let defaults = sharedDefaults, defaults.object(forKey: "disciplineScore") != nil else {
             return 100
         }

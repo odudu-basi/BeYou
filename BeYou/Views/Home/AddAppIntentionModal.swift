@@ -16,6 +16,7 @@ struct AddAppIntentionModal: View {
     @State private var minutesPerSession: Int = 5
     @State private var showDuplicateAppAlert = false
     @State private var showMultipleAppsAlert = false
+    @State private var showCategoryAlert = false
 
     let existingAppName: String? // For editing existing intentions
     let onSave: (String, IndividualAppIntention) -> Void
@@ -250,9 +251,19 @@ struct AddAppIntentionModal: View {
             let appCount = newSelection.applicationTokens.count
             let categoryCount = newSelection.categoryTokens.count
 
-            if appCount + categoryCount > 1 {
+            if categoryCount > 0 {
+                // User selected a category instead of an individual app
+                print("⚠️ MODAL: User selected a category, not an individual app")
+                appSelection = FamilyActivitySelection()
+                selectedToken = nil
+                selectedTokenData = nil
+                showCategoryAlert = true
+                return
+            }
+
+            if appCount > 1 {
                 // Too many selected - clear and show warning
-                print("⚠️ MODAL: User selected \(appCount + categoryCount) items (max 1)")
+                print("⚠️ MODAL: User selected \(appCount) items (max 1)")
                 appSelection = FamilyActivitySelection()
                 selectedToken = nil
                 selectedTokenData = nil
@@ -304,6 +315,13 @@ struct AddAppIntentionModal: View {
             }
         } message: {
             Text("Please select only one app per intention. You can add more intentions for other apps separately.")
+        }
+        .alert("Select an App, Not a Category", isPresented: $showCategoryAlert) {
+            Button("Got it") {
+                showCategoryAlert = false
+            }
+        } message: {
+            Text("Please select an individual app, not an entire category. Tap on a specific app to set an intention for it.")
         }
     }
 

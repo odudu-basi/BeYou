@@ -11,8 +11,11 @@ struct HomeView: View {
 
     // Daily challenges state
     @AppStorage("dailyChallenges") private var dailyChallengesData: Data = Data()
+    @AppStorage("seededChallenges") private var seededChallengesData: Data = Data()
+    @AppStorage("seededChallengesDate") private var seededChallengesDateString: String = ""
     @AppStorage("lastChallengeResetDate") private var lastResetDateString: String = ""
     @State private var challenges: [DailyChallenge] = []
+    @State private var seededChallenges: [DailyChallenge] = []
     @State private var showStreakDetail = false
     @State private var showAddChallenge = false
     @State private var activeBlockingSessions: [ScheduleSession] = []
@@ -169,14 +172,26 @@ struct HomeView: View {
                             Spacer()
 
                             // Completed count
-                            let completedCount = challenges.filter { $0.isCompleted }.count
-                            Text("\(completedCount)/\(challenges.count)")
+                            let allChallenges = seededChallenges + challenges
+                            let completedCount = allChallenges.filter { $0.isCompleted }.count
+                            Text("\(completedCount)/\(allChallenges.count)")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(completedCount == challenges.count ? Color(hex: "10B981") : Color(hex: "999999"))
+                                .foregroundColor(completedCount == allChallenges.count ? Color(hex: "10B981") : Color(hex: "999999"))
                         }
 
                         // Checklist
                         VStack(spacing: 12) {
+                            // Seeded daily challenges (not deletable)
+                            ForEach(seededChallenges.indices, id: \.self) { index in
+                                ChallengeChecklistItem(
+                                    challenge: seededChallenges[index],
+                                    onToggle: {
+                                        toggleSeededChallenge(at: index)
+                                    }
+                                )
+                            }
+
+                            // Custom challenges (deletable)
                             ForEach(challenges.indices, id: \.self) { index in
                                 ChallengeChecklistItem(
                                     challenge: challenges[index],
@@ -287,24 +302,61 @@ struct HomeView: View {
     // MARK: - Daily Challenge Functions
 
     private func loadChallenges() {
-        if var decoded = try? JSONDecoder().decode([DailyChallenge].self, from: dailyChallengesData) {
-            // Migrate: ensure default challenges have affectsDiscipline = true
-            let defaultIds: Set<String> = ["read-book", "drink-water", "brush-teeth"]
-            var migrated = false
-            for i in decoded.indices where defaultIds.contains(decoded[i].id) && !decoded[i].affectsDiscipline {
-                decoded[i].affectsDiscipline = true
-                migrated = true
-            }
+        // Load custom challenges
+        if let decoded = try? JSONDecoder().decode([DailyChallenge].self, from: dailyChallengesData) {
             challenges = decoded
-            if migrated { saveChallenges() }
         } else {
-            // Initialize with default challenges
-            challenges = [
-                DailyChallenge(id: "read-book", emoji: "📚", title: "Read a book", isCompleted: false, affectsDiscipline: true),
-                DailyChallenge(id: "drink-water", emoji: "💧", title: "Drink 3L of water", isCompleted: false, affectsDiscipline: true),
-                DailyChallenge(id: "brush-teeth", emoji: "🦷", title: "Brush your teeth", isCompleted: false, affectsDiscipline: true)
-            ]
+            challenges = []
             saveChallenges()
+        }
+
+        // Load or generate seeded daily challenges
+        loadSeededChallenges()
+    }
+
+    private func loadSeededChallenges() {
+        let formatter = ISO8601DateFormatter()
+        let today = Calendar.current.startOfDay(for: Date())
+        let todayString = formatter.string(from: today)
+
+        // If seeded challenges are from today, load them
+        if seededChallengesDateString == todayString,
+           let decoded = try? JSONDecoder().decode([DailyChallenge].self, from: seededChallengesData) {
+            seededChallenges = decoded
+            return
+        }
+
+        // Generate new seeded challenges for today
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day], from: today)
+        let seed = (components.year ?? 2026) * 10000 + (components.month ?? 1) * 100 + (components.day ?? 1)
+
+        var picks: [Int] = []
+        var s = seed
+        while picks.count < 3 {
+            s = (s &* 16807) % 2147483647
+            let idx = abs(s) % seededChallengePool.count
+            if !picks.contains(idx) {
+                picks.append(idx)
+            }
+        }
+
+        seededChallenges = picks.map { idx in
+            let item = seededChallengePool[idx]
+            return DailyChallenge(
+                id: "seeded-\(idx)",
+                emoji: item.emoji,
+                title: item.title,
+                isCompleted: false,
+                affectsDiscipline: true,
+                isDefault: true
+            )
+        }
+
+        // Save
+        seededChallengesDateString = todayString
+        if let encoded = try? JSONEncoder().encode(seededChallenges) {
+            seededChallengesData = encoded
         }
     }
 
@@ -314,16 +366,27 @@ struct HomeView: View {
         }
     }
 
+    private func toggleSeededChallenge(at index: Int) {
+        seededChallenges[index].isCompleted.toggle()
+        if let encoded = try? JSONEncoder().encode(seededChallenges) {
+            seededChallengesData = encoded
+        }
+
+        if seededChallenges[index].isCompleted {
+            AnalyticsManager.shared.trackChallengeCompleted(name: seededChallenges[index].title)
+        }
+
+        updateDisciplineChallengeBonus()
+    }
+
     private func toggleChallenge(at index: Int) {
         challenges[index].isCompleted.toggle()
         saveChallenges()
 
-        // Track challenge completion
         if challenges[index].isCompleted {
             AnalyticsManager.shared.trackChallengeCompleted(name: challenges[index].title)
         }
 
-        // Recalculate discipline score when a challenge affecting it is toggled
         if challenges[index].affectsDiscipline {
             updateDisciplineChallengeBonus()
         }
@@ -355,8 +418,9 @@ struct HomeView: View {
     }
 
     private func updateDisciplineChallengeBonus() {
-        let completedDisciplineChallenges = challenges.filter { $0.affectsDiscipline && $0.isCompleted }.count
-        let bonus = Double(completedDisciplineChallenges) * 0.5
+        let seededCount = seededChallenges.filter { $0.isCompleted }.count
+        let customCount = challenges.filter { $0.affectsDiscipline && $0.isCompleted }.count
+        let bonus = Double(seededCount + customCount) * 0.5
         appState.challengeDisciplineBonus = bonus
     }
 
@@ -434,15 +498,18 @@ struct HomeView: View {
             let lastReset = calendar.startOfDay(for: lastResetDate)
 
             if today > lastReset {
-                // Reset all challenges
+                // Reset custom challenges
                 for index in challenges.indices {
                     challenges[index].isCompleted = false
                 }
                 saveChallenges()
+
+                // Regenerate seeded challenges for the new day
+                loadSeededChallenges()
+
                 lastResetDateString = formatter.string(from: today)
             }
         } else {
-            // First time, set reset date
             lastResetDateString = formatter.string(from: today)
         }
     }
@@ -482,6 +549,31 @@ struct DailyChallenge: Codable, Identifiable {
         isDefault = try container.decodeIfPresent(Bool.self, forKey: .isDefault) ?? true
     }
 }
+
+// MARK: - Seeded Challenge Pool
+
+let seededChallengePool: [(emoji: String, title: String)] = [
+    ("🚶", "Go for a 15-minute walk"),
+    ("📚", "Read a book for 20 minutes"),
+    ("💧", "Drink 3L of water"),
+    ("📵", "No phone for the first hour after waking"),
+    ("📝", "Journal for 10 minutes"),
+    ("🧘", "Meditate for 5 minutes"),
+    ("💪", "Do a 10-minute workout"),
+    ("🍳", "Cook a meal from scratch"),
+    ("📞", "Call or text a friend or family member"),
+    ("🛏️", "Make your bed"),
+    ("🚫", "No social media before noon"),
+    ("☀️", "Go outside and get sunlight"),
+    ("🤸", "Stretch for 10 minutes"),
+    ("🎧", "Listen to a podcast instead of scrolling"),
+    ("🙏", "Write down 3 things you're grateful for"),
+    ("🚿", "Take a cold shower"),
+    ("🧹", "Clean or organize one area of your space"),
+    ("😊", "Compliment someone genuinely"),
+    ("🌙", "No screen time 1 hour before bed"),
+    ("🧠", "Learn something new for 15 minutes"),
+]
 
 // MARK: - Challenge Checklist Item
 
@@ -872,12 +964,11 @@ struct StreakDetailSheet: View {
                                 VStack(spacing: 10) {
                                     ForEach(Array(perAppIntentions.keys.sorted()), id: \.self) { key in
                                         let intention = perAppIntentions[key]!
-                                        let displayName = resolveDisplayName(key)
                                         let streak = getStreak(for: key)
                                         let limit = intention.timesPerDay
 
                                         AppStreakRow(
-                                            appName: displayName.hasPrefix("app_") ? "App" : displayName,
+                                            appName: intention.appName,
                                             tokenData: intention.appTokenData,
                                             streak: streak,
                                             limit: limit
@@ -946,9 +1037,16 @@ struct AppStreakRow: View {
 
             // App info
             VStack(alignment: .leading, spacing: 3) {
-                Text(appName)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color(hex: "1A1A1A"))
+                if appName.hasPrefix("app_"), let token = decodedToken {
+                    Label(token)
+                        .labelStyle(.titleOnly)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "1A1A1A"))
+                } else {
+                    Text(appName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(hex: "1A1A1A"))
+                }
 
                 Text("Under \(limit) opens")
                     .font(.system(size: 14))

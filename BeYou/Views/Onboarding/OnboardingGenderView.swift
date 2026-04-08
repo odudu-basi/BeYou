@@ -9,7 +9,7 @@ struct OnboardingGenderView: View {
     let onNext: () -> Void
     let onBack: (() -> Void)?
 
-    let genders = ["Male", "Female", "Non-binary", "Prefer not to say"]
+    let genders = ["Male", "Female", "Prefer not to say"]
 
     var body: some View {
         OnboardingTemplate(

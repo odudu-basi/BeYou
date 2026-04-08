@@ -6,7 +6,6 @@ import SwiftUI
 struct AffirmationEntry: TimelineEntry {
     let date: Date
     let affirmation: String
-    let score: Int
     let theme: WidgetTheme
 }
 
@@ -17,7 +16,6 @@ struct AffirmationProvider: TimelineProvider {
         AffirmationEntry(
             date: Date(),
             affirmation: "You are worthy of all the good things life has to offer.",
-            score: 85,
             theme: WidgetDataProvider.resolveTheme(id: "starry-mountains")
         )
     }
@@ -25,10 +23,9 @@ struct AffirmationProvider: TimelineProvider {
     func getSnapshot(in context: Context, completion: @escaping (AffirmationEntry) -> Void) {
         let now = Date()
         let affirmation = WidgetDataProvider.getAffirmation(for: now)
-        let score = WidgetDataProvider.loadDisciplineScore()
         let themeId = WidgetDataProvider.loadSelectedThemeId()
         let theme = WidgetDataProvider.resolveTheme(id: themeId)
-        completion(AffirmationEntry(date: now, affirmation: affirmation, score: score, theme: theme))
+        completion(AffirmationEntry(date: now, affirmation: affirmation, theme: theme))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<AffirmationEntry>) -> Void) {
@@ -42,8 +39,7 @@ struct AffirmationProvider: TimelineProvider {
         for i in 0..<8 {
             let entryDate = calendar.date(byAdding: .minute, value: i * 15, to: now)!
             let affirmation = WidgetDataProvider.getAffirmation(for: entryDate)
-            let score = WidgetDataProvider.loadDisciplineScore()
-            entries.append(AffirmationEntry(date: entryDate, affirmation: affirmation, score: score, theme: theme))
+            entries.append(AffirmationEntry(date: entryDate, affirmation: affirmation, theme: theme))
         }
 
         let nextUpdate = calendar.date(byAdding: .hour, value: 2, to: now)!
@@ -52,14 +48,13 @@ struct AffirmationProvider: TimelineProvider {
     }
 }
 
-// MARK: - Medium Widget View (Score Ring + Affirmation)
+// MARK: - Small Widget View (Affirmation Only)
 
-struct AffirmationMediumView: View {
+struct AffirmationSmallView: View {
     let entry: AffirmationEntry
 
     var body: some View {
         ZStack {
-            // Dark background matching small widget
             ContainerRelativeShape()
                 .fill(
                     LinearGradient(
@@ -69,74 +64,76 @@ struct AffirmationMediumView: View {
                     )
                 )
 
-            HStack(spacing: 16) {
-                // Score ring on the left
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.1), lineWidth: 8)
+            VStack(spacing: 0) {
+                Spacer()
 
-                    Circle()
-                        .trim(from: 0, to: Double(entry.score) / 100.0)
-                        .stroke(
-                            scoreColor(entry.score),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
+                Text(entry.affirmation.uppercased())
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .tracking(0.3)
+                    .lineLimit(5)
+                    .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 14)
 
-                    VStack(spacing: 0) {
-                        Text("\(entry.score)")
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
+                Spacer()
 
-                        Text("score")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(Color.white.opacity(0.5))
-                            .textCase(.uppercase)
-                            .tracking(0.5)
-                    }
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 9))
+                    Text("BeYou")
+                        .font(.system(size: 10, weight: .medium))
                 }
-                .frame(width: 80, height: 80)
-                .padding(.leading, 4)
-
-                // Divider line
-                Rectangle()
-                    .fill(Color.white.opacity(0.15))
-                    .frame(width: 1)
-                    .padding(.vertical, 16)
-
-                // Affirmation on the right
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(entry.affirmation.uppercased())
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineSpacing(3)
-                        .tracking(0.3)
-                        .lineLimit(4)
-                        .minimumScaleFactor(0.8)
-
-                    Spacer()
-
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 9))
-                            .foregroundColor(Color.white.opacity(0.4))
-                        Text("BeYou")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(Color.white.opacity(0.4))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.trailing, 4)
+                .foregroundColor(Color.white.opacity(0.4))
+                .padding(.bottom, 12)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 14)
+            .padding(.vertical, 8)
         }
     }
+}
 
-    private func scoreColor(_ score: Int) -> Color {
-        if score >= 80 { return Color(hex: "34D399") }
-        if score >= 60 { return Color(hex: "FBBF24") }
-        return Color(hex: "F87171")
+// MARK: - Medium Widget View (Affirmation)
+
+struct AffirmationMediumView: View {
+    let entry: AffirmationEntry
+
+    var body: some View {
+        ZStack {
+            ContainerRelativeShape()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(hex: "1A1A1A"), Color(hex: "2A2A2A")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer()
+
+                Text(entry.affirmation.uppercased())
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineSpacing(4)
+                    .tracking(0.3)
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.8)
+
+                Spacer()
+
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 9))
+                        .foregroundColor(Color.white.opacity(0.4))
+                    Text("BeYou")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.4))
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+        }
     }
 }
 
@@ -147,7 +144,6 @@ struct AffirmationLargeView: View {
 
     var body: some View {
         ZStack {
-            // Dark background matching small widget
             ContainerRelativeShape()
                 .fill(
                     LinearGradient(
@@ -178,31 +174,8 @@ struct AffirmationLargeView: View {
 
                 Spacer()
 
-                // Bottom bar: score ring + branding
+                // Bottom branding
                 HStack {
-                    // Mini score ring
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white.opacity(0.1), lineWidth: 3)
-
-                        Circle()
-                            .trim(from: 0, to: Double(entry.score) / 100.0)
-                            .stroke(
-                                scoreColor(entry.score),
-                                style: StrokeStyle(lineWidth: 3, lineCap: .round)
-                            )
-                            .rotationEffect(.degrees(-90))
-
-                        Text("\(entry.score)")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    .frame(width: 32, height: 32)
-
-                    Text("Discipline")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(Color.white.opacity(0.5))
-
                     Spacer()
 
                     HStack(spacing: 4) {
@@ -217,12 +190,6 @@ struct AffirmationLargeView: View {
                 .padding(.bottom, 20)
             }
         }
-    }
-
-    private func scoreColor(_ score: Int) -> Color {
-        if score >= 80 { return Color(hex: "34D399") }
-        if score >= 60 { return Color(hex: "FBBF24") }
-        return Color(hex: "F87171")
     }
 }
 
@@ -248,7 +215,7 @@ struct AffirmationWidget: Widget {
         }
         .configurationDisplayName("Affirmation")
         .description("Stay motivated with personalized affirmations.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
@@ -260,12 +227,14 @@ struct WidgetEntryView: View {
 
     var body: some View {
         switch family {
+        case .systemSmall:
+            AffirmationSmallView(entry: entry)
         case .systemMedium:
             AffirmationMediumView(entry: entry)
         case .systemLarge:
             AffirmationLargeView(entry: entry)
         default:
-            AffirmationMediumView(entry: entry)
+            AffirmationSmallView(entry: entry)
         }
     }
 }

@@ -184,6 +184,9 @@ struct OnboardingCoordinator: View {
         // Track onboarding completion
         AnalyticsManager.shared.trackOnboardingCompleted(data: appState.onboardingData)
 
+        // Save user profile to Supabase (fire-and-forget)
+        UserProfileService.shared.saveOnboardingProfile(appState.onboardingData)
+
         appState.navigateTo(.paywall)
     }
 }

@@ -20,6 +20,7 @@ class NotificationManager: ObservableObject {
         case disciplineScore = "discipline_score"
         case dailyReminder = "daily_reminder"
         case affirmation = "affirmation"
+        case streakWarning = "streak_warning"
     }
 
     private init() {
@@ -154,6 +155,41 @@ class NotificationManager: ObservableObject {
                 print("Failed to schedule streak notification: \(error)")
             }
         }
+    }
+
+    /// Warn user they're about to lose their streak if they have no active intentions
+    func scheduleStreakWarningNotification(currentStreak: Int) {
+        guard isAuthorized, currentStreak > 0 else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "🔥 Your \(currentStreak) day streak is at risk!"
+        content.body = "Add an app intention to keep your streak alive before midnight."
+        content.sound = .default
+
+        // Schedule for 9 PM today
+        var dateComponents = DateComponents()
+        dateComponents.hour = 21
+        dateComponents.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: NotificationIdentifier.streakWarning.rawValue,
+            content: content,
+            trigger: trigger
+        )
+
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("Failed to schedule streak warning: \(error)")
+            }
+        }
+    }
+
+    /// Cancel streak warning (user added an intention)
+    func cancelStreakWarningNotification() {
+        notificationCenter.removePendingNotificationRequests(
+            withIdentifiers: [NotificationIdentifier.streakWarning.rawValue]
+        )
     }
 
     /// Midnight reset notification

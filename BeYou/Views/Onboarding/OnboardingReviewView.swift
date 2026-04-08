@@ -7,7 +7,7 @@ struct OnboardingReviewView: View {
     let onNext: () -> Void
     let onBack: (() -> Void)?
 
-    @State private var hasRequestedReview = false
+    @State private var hasTappedSupportButton = false
 
     var body: some View {
         ZStack {
@@ -93,12 +93,13 @@ struct OnboardingReviewView: View {
 
                         // Rate button
                         Button(action: {
+                            hasTappedSupportButton = true
                             requestReview()
                         }) {
                             HStack(spacing: 10) {
                                 Image(systemName: "star.fill")
                                     .font(.system(size: 16))
-                                Text(hasRequestedReview ? "Thank you!" : "Support Our Mission")
+                                Text(hasTappedSupportButton ? "Thank you!" : "Support Our Mission")
                                     .font(.system(size: 16, weight: .semibold))
                             }
                             .foregroundColor(.white)
@@ -113,8 +114,8 @@ struct OnboardingReviewView: View {
                             )
                             .cornerRadius(14)
                         }
-                        .disabled(hasRequestedReview)
-                        .opacity(hasRequestedReview ? 0.7 : 1.0)
+                        .disabled(hasTappedSupportButton)
+                        .opacity(hasTappedSupportButton ? 0.7 : 1.0)
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 20)
@@ -122,6 +123,10 @@ struct OnboardingReviewView: View {
 
                 // Continue button
                 Button(action: {
+                    if !hasTappedSupportButton {
+                        // They skipped "Support Our Mission" — show review prompt as last chance
+                        requestReview()
+                    }
                     onNext()
                 }) {
                     Text("Continue")
@@ -156,7 +161,7 @@ struct OnboardingReviewView: View {
         if let scene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)
-            hasRequestedReview = true
+            hasTappedSupportButton = true
         }
     }
 }

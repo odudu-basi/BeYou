@@ -11,6 +11,11 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
     @Published var customerInfo: RevenueCat.CustomerInfo?
     private var hasCompletedInitialSync = false
 
+    /// RevenueCat anonymous user ID — stable across sessions, persists until app delete
+    var revenueCatUserId: String {
+        Purchases.shared.appUserID
+    }
+
     private override init() {
         super.init()
     }
@@ -58,12 +63,31 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
         let wasProUser = self.isProUser
         self.isProUser = info.entitlements["BeYou_Pro"]?.isActive == true
 
+        // Identify user in Mixpanel with RevenueCat ID
+        let rcId = revenueCatUserId
+        AnalyticsManager.shared.identify(userId: rcId)
+        AnalyticsManager.shared.setUserProperties([
+            "revenuecat_id": rcId,
+            "is_subscribed": isProUser,
+            "subscription_product": info.entitlements["BeYou_Pro"]?.productIdentifier ?? "",
+            "is_trial": info.entitlements["BeYou_Pro"]?.periodType == .trial
+        ])
+
+        // Store RevenueCat ID in SharedDataManager for emails
+        SharedDataManager.shared.saveUserID(rcId)
+
+        // Sync to Supabase
+        UserProfileService.shared.syncSubscriptionStatus(
+            revenueCatId: rcId,
+            isSubscribed: isProUser,
+            isTrial: info.entitlements["BeYou_Pro"]?.periodType == .trial,
+            productId: info.entitlements["BeYou_Pro"]?.productIdentifier
+        )
+
         if !hasCompletedInitialSync {
-            // First sync on app launch — don't fire purchase event for existing subscriptions
             hasCompletedInitialSync = true
-            print("💰 SUBS: Initial sync — isProUser: \(isProUser)")
+            print("💰 SUBS: Initial sync — isProUser: \(isProUser), rcId: \(rcId)")
         } else if !wasProUser && isProUser {
-            // Genuine new purchase or restore during this session
             print("💰 SUBS: User became Pro")
             AnalyticsManager.shared.trackSubscriptionPurchased()
         } else if wasProUser && !isProUser {

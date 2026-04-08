@@ -172,15 +172,12 @@ class AppState: ObservableObject {
                 total: appUsageStats.breakthroughsToday
             )
 
-            // New day - check streaks for each app
-            var overallStreakMaintained = true
-
+            // New day - check per-app streaks
             for (appName, yesterdayBreakthroughs) in appUsageStats.breakthroughsByApp {
                 let appIntention = onboardingData.appIntention.perAppIntentions[appName]
                 let limit = appIntention?.timesPerDay ?? 10
 
                 if yesterdayBreakthroughs <= limit {
-                    // Maintained streak for this app!
                     let currentStreak = (appUsageStats.currentStreakByApp[appName] ?? 0) + 1
                     appUsageStats.currentStreakByApp[appName] = currentStreak
 
@@ -188,14 +185,13 @@ class AppState: ObservableObject {
                         appUsageStats.longestStreakByApp[appName] = currentStreak
                     }
                 } else {
-                    // Broke streak for this app
                     appUsageStats.currentStreakByApp[appName] = 0
-                    overallStreakMaintained = false
                 }
             }
 
-            // Update overall streak
-            if overallStreakMaintained && !appUsageStats.breakthroughsByApp.isEmpty {
+            // Overall streak: maintained as long as the user has at least one active intention
+            let hasActiveIntention = !onboardingData.appIntention.perAppIntentions.isEmpty
+            if hasActiveIntention {
                 appUsageStats.currentStreak += 1
                 if appUsageStats.currentStreak > appUsageStats.longestStreak {
                     appUsageStats.longestStreak = appUsageStats.currentStreak
@@ -208,12 +204,14 @@ class AppState: ObservableObject {
             if #available(iOS 16.0, *) {
                 NotificationManager.shared.scheduleStreakNotification(
                     streakDays: appUsageStats.currentStreak,
-                    didMaintainStreak: overallStreakMaintained
+                    didMaintainStreak: hasActiveIntention
                 )
             }
 
             // Reset daily counters
             disciplineScore.score = 100 // Fresh start every day
+            disciplineScore.nevermindCount = 0
+            challengeDisciplineBonus = 0
             appUsageStats.breakthroughsToday = 0
             appUsageStats.breakthroughsByApp.removeAll()
             appUsageStats.lastResetDate = Date()
@@ -222,6 +220,15 @@ class AppState: ObservableObject {
             appUsageStats.unlockExpiryTime = nil
             appUsageStats.unlockExpiryByApp.removeAll()
             appUsageStats.affirmationsViewed = 0
+
+            // Schedule streak warning if user has no intentions (streak at risk)
+            if #available(iOS 16.0, *) {
+                if onboardingData.appIntention.perAppIntentions.isEmpty && appUsageStats.currentStreak > 0 {
+                    NotificationManager.shared.scheduleStreakWarningNotification(currentStreak: appUsageStats.currentStreak)
+                } else {
+                    NotificationManager.shared.cancelStreakWarningNotification()
+                }
+            }
 
             // Save to shared storage
             saveAllData()
@@ -387,38 +394,22 @@ class AppState: ObservableObject {
     /// Score starts at 100. Only deducted when user goes OVER their per-app limits.
     /// Floor is 40 — even on the worst day, score never drops below 40.
     private func recalculateDisciplineScore() {
+        // Every open past the app's limit deducts 2 points
         var totalExtraOpens = 0
-        var totalAppLimit = 0
-
         for (appName, breakthroughs) in appUsageStats.breakthroughsByApp {
             let limit = getAppLimit(appName)
-            totalAppLimit += limit
-            let extra = max(0, breakthroughs - limit)
-            totalExtraOpens += extra
+            totalExtraOpens += max(0, breakthroughs - limit)
         }
 
-        // If no apps tracked or no limits set, keep score at 100
-        guard totalAppLimit > 0 else {
-            disciplineScore.score = 100
-            return
-        }
+        let deduction = totalExtraOpens * 2
+        let nevermindBonus = disciplineScore.nevermindCount
 
-        // maxReasonableOverage = total limit across all apps (going double over = worst case)
-        let maxReasonableOverage = max(1, totalAppLimit)
-        let deductionRatio = Double(totalExtraOpens) / Double(maxReasonableOverage)
-        let deduction = min(60.0, deductionRatio * 60.0) // Max deduction is 60 points (floor of 40)
+        // Challenge bonus: +0.5 per completed challenge with discipline toggle
+        // Only whole points count (e.g. 2 challenges = +1, 3 challenges = +1)
+        let challengeBonus = Int(challengeDisciplineBonus)
 
-        // Base score from app usage
-        let baseScore = Double(max(40, 100 - Int(deduction)))
-
-        // Add bonuses (floored — only whole points show)
-        // Challenge bonus: +0.5 per completed discipline challenge
-        // Nevermind bonus: +0.5 per nevermind (rewarding self-control)
-        let nevermindBonus = Double(disciplineScore.nevermindCount) * 0.5
-        let totalBonus = floor(challengeDisciplineBonus + nevermindBonus)
-        let finalScore = baseScore + totalBonus
-
-        disciplineScore.score = min(100, Int(finalScore))
+        let finalScore = 100 - deduction + nevermindBonus + challengeBonus
+        disciplineScore.score = max(0, min(100, finalScore))
     }
 }
 

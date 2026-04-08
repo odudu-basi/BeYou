@@ -9,9 +9,12 @@ struct InterventionSheet: View {
 
     @State private var currentPage: InterventionPage = .mentalHealthCheck
     @State private var selectedMood: MentalHealthMood?
+    @State private var selectedReason: MoodReason?
     @State private var currentAffirmationIndex: Int = 0
     @State private var showThemePicker = false
     @State private var selectedDuration: Int? = nil // For scheduled blocks
+    @State private var aiAffirmations: [String]? = nil
+    @State private var isLoadingAffirmations = false
     @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "starry-mountains"
     @AppStorage("selectedAffirmationCategories") private var selectedCategoriesData: Data = Data()
     @AppStorage("interventionAffirmationCount") private var interventionCount: Int = 3
@@ -79,82 +82,88 @@ struct InterventionSheet: View {
     }
 
     private var affirmationsToShow: [String] {
+        if let ai = aiAffirmations, !ai.isEmpty {
+            return ai
+        }
+        if !isLoadingAffirmations {
+            return localAffirmations
+        }
+        return []
+    }
+
+    private var localAffirmations: [String] {
         let service = AffirmationService.shared
         let data = appState.onboardingData
-        let userCategories = selectedCategories.isEmpty ? data.categories : Array(selectedCategories)
         let belief = isReligionIncluded ? (data.beliefs.first ?? "general") : "general"
 
-        // Get the user's category pool
-        let userPool = service.getAllMatchedAffirmations(
-            categories: userCategories,
+        let categories: [String]
+        if let reason = selectedReason {
+            categories = reason.categories
+        } else if let mood = selectedMood {
+            categories = mood.boostCategories
+        } else {
+            categories = selectedCategories.isEmpty ? data.categories : Array(selectedCategories)
+        }
+
+        let pool = service.getAllMatchedAffirmations(
+            categories: categories,
             goals: data.goals,
             belief: belief,
             name: data.name ?? ""
         ).map { $0.text }
 
-        // Get mood-boosted pool (blended with user's mood selection)
-        var moodPool: [String] = []
-        if let mood = selectedMood {
-            let moodCategories = mood.boostCategories
-            moodPool = service.getAllMatchedAffirmations(
-                categories: moodCategories,
-                goals: data.goals,
-                belief: belief,
-                name: data.name ?? ""
-            ).map { $0.text }
-        }
+        guard !pool.isEmpty else { return [] }
 
-        // Build the final pool: mood quotes first (prioritized), then user quotes
-        // Deduplicate so overlapping quotes aren't shown twice
-        var finalPool: [String] = []
-        var seen = Set<String>()
-        // Add mood-boosted quotes first (they get priority in picking)
-        for q in moodPool where !seen.contains(q) {
-            seen.insert(q)
-            finalPool.append(q)
-        }
-        // Then add user category quotes
-        for q in userPool where !seen.contains(q) {
-            seen.insert(q)
-            finalPool.append(q)
-        }
-
-        guard !finalPool.isEmpty else { return [] }
-
-        // Pick quotes — mood quotes are at the front of finalPool so they're
-        // naturally prioritized. Use breakthrough count as seed for variety.
         let seed = appState.appUsageStats.breakthroughsToday * 7 + 42
         var picks: [String] = []
         var usedIndices = Set<Int>()
         var s = seed
 
-        // Pick ~2/3 from mood pool (front of array), ~1/3 from user pool (back)
-        let moodCount = moodPool.isEmpty ? 0 : min(interventionCount - 1, finalPool.count)
-        let moodEnd = min(moodPool.count, finalPool.count)
-
-        // First: pick from mood section
-        if moodEnd > 0 {
-            while picks.count < moodCount && picks.count < moodEnd {
-                s = (s &* 16807) % 2147483647
-                let idx = abs(s) % moodEnd
-                if !usedIndices.contains(idx) {
-                    usedIndices.insert(idx)
-                    picks.append(finalPool[idx])
-                }
-            }
-        }
-
-        // Then: fill remaining from the full pool
-        while picks.count < interventionCount && picks.count < finalPool.count {
+        while picks.count < interventionCount && picks.count < pool.count {
             s = (s &* 16807) % 2147483647
-            let idx = abs(s) % finalPool.count
+            let idx = abs(s) % pool.count
             if !usedIndices.contains(idx) {
                 usedIndices.insert(idx)
-                picks.append(finalPool[idx])
+                picks.append(pool[idx])
             }
         }
 
         return picks
+    }
+
+    private func loadAIAffirmations() {
+        isLoadingAffirmations = true
+        aiAffirmations = nil
+
+        Task {
+            let data = appState.onboardingData
+            let mood = selectedMood?.rawValue ?? "Okay"
+            let feeling = selectedReason?.rawValue
+            let religion = data.religion ?? data.beliefs.first
+
+            let result = await AIAffirmationService.shared.generateAffirmations(
+                mood: mood,
+                feeling: feeling,
+                name: data.name,
+                religion: religion,
+                count: interventionCount
+            )
+
+            await MainActor.run {
+                if let result = result {
+                    aiAffirmations = result
+                }
+                // Whether AI succeeded or failed, stop loading → shows AI or fallback
+                isLoadingAffirmations = false
+            }
+        }
+
+        // After 3 seconds, if AI hasn't responded, stop loading and show fallback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            if isLoadingAffirmations {
+                isLoadingAffirmations = false
+            }
+        }
     }
 
     private var currentTheme: MotivationTheme {
@@ -204,6 +213,8 @@ struct InterventionSheet: View {
                     switch currentPage {
                     case .mentalHealthCheck:
                         mentalHealthCheckPage
+                    case .reasonCheck:
+                        reasonCheckPage
                     case .affirmation:
                         affirmationPage
                     case .confirmContinue:
@@ -268,6 +279,7 @@ struct InterventionSheet: View {
                                 isSelected: selectedMood == mood,
                                 onTap: {
                                     selectedMood = mood
+                                    selectedReason = nil
                                 }
                             )
                         }
@@ -281,7 +293,7 @@ struct InterventionSheet: View {
             Button(action: {
                 if selectedMood != nil {
                     withAnimation {
-                        currentPage = .affirmation
+                        currentPage = .reasonCheck
                     }
                 }
             }) {
@@ -294,6 +306,75 @@ struct InterventionSheet: View {
                     .cornerRadius(16)
             }
             .disabled(selectedMood == nil)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Reason Check Page
+
+    private var reasonCheckPage: some View {
+        VStack(spacing: 0) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 32) {
+                    // App logo
+                    Image("be-you-icon")
+                        .resizable()
+                        .frame(width: 80, height: 80)
+                        .cornerRadius(20)
+                        .padding(.top, 40)
+
+                    // Question
+                    VStack(spacing: 12) {
+                        Text("Why do you feel this way?")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(Color(hex: "1E293B"))
+
+                        Text("This helps us pick the right words for you")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(hex: "64748B"))
+                            .padding(.top, 4)
+                    }
+                    .multilineTextAlignment(.center)
+
+                    // Reason options based on selected mood
+                    if let mood = selectedMood {
+                        VStack(spacing: 12) {
+                            ForEach(MoodReason.reasons(for: mood), id: \.self) { reason in
+                                ReasonButton(
+                                    reason: reason,
+                                    isSelected: selectedReason == reason,
+                                    accentColor: mood.color,
+                                    onTap: {
+                                        selectedReason = reason
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
+                    }
+                }
+            }
+
+            // Next button pinned to bottom
+            Button(action: {
+                if selectedReason != nil {
+                    loadAIAffirmations()
+                    withAnimation {
+                        currentPage = .affirmation
+                    }
+                }
+            }) {
+                Text("Next")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(selectedReason != nil ? Color(hex: "3B82F6") : Color(hex: "CBD5E1"))
+                    .cornerRadius(16)
+            }
+            .disabled(selectedReason == nil)
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
         }
@@ -324,8 +405,16 @@ struct InterventionSheet: View {
 
             Spacer()
 
-            // Affirmation text — tap the whole area to advance
-            if currentAffirmationIndex < affirmationsToShow.count {
+            // Loading state or affirmation text
+            if isLoadingAffirmations {
+                VStack(spacing: 16) {
+                    ProgressView()
+                        .tint(Color(hex: currentTheme.textColor))
+                    Text("Personalizing your affirmations...")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Color(hex: currentTheme.textColor).opacity(0.6))
+                }
+            } else if currentAffirmationIndex < affirmationsToShow.count {
                 Text(affirmationsToShow[currentAffirmationIndex].uppercased())
                     .font(.system(size: 28, weight: .heavy))
                     .foregroundColor(Color(hex: currentTheme.textColor))
@@ -770,10 +859,130 @@ enum MentalHealthMood: String, CaseIterable {
     }
 }
 
+// MARK: - Mood Reason Enum
+
+enum MoodReason: String, CaseIterable, Hashable {
+    // Great
+    case feelingConfident = "Feeling confident in myself"
+    case excitedAboutFuture = "Excited about my future"
+    case gratefulForPeople = "Grateful for the people in my life"
+    case ridingGoodEnergy = "Riding a wave of good energy"
+    case feelingLikeThat = "Just feeling like that girl/guy"
+
+    // Good
+    case goodDay = "Today's a good day"
+    case feelingPositive = "Feeling positive about things"
+    case makingProgress = "Making progress on my goals"
+    case feelingConnected = "Feeling connected to people I love"
+    case calmPeaceful = "In a calm, peaceful headspace"
+
+    // Okay
+    case gettingThrough = "Just getting through the day"
+    case feelingFlat = "Feeling a bit flat"
+    case notBadNotGreat = "Not bad, just not great either"
+    case distractedRestless = "A little distracted or restless"
+    case couldUsePickMeUp = "Could use a pick-me-up"
+
+    // Not Great
+    case lowEnergy = "Low energy or motivation"
+    case comparingToOthersNG = "Comparing myself to others"
+    case notGoodEnoughNG = "Feeling not good enough"
+    case stressedAboutLife = "Stressed about life"
+    case roughDay = "Just having a rough day"
+
+    // Struggling
+    case anxiousOverwhelmed = "Feeling anxious or overwhelmed"
+    case comparingToOthersS = "Constantly comparing myself to others"
+    case notGoodEnoughS = "Feeling like I'm not good enough"
+    case lonelyDisconnected = "Lonely or disconnected"
+    case stuckInNegativeThoughts = "Stuck in negative thoughts"
+
+    var categories: [String] {
+        switch self {
+        // Great
+        case .feelingConfident:      return ["Confidence", "Feeling sassy"]
+        case .excitedAboutFuture:    return ["Dream big", "Purpose"]
+        case .gratefulForPeople:     return ["Gratitude", "Romance"]
+        case .ridingGoodEnergy:      return ["Positivity", "Attraction"]
+        case .feelingLikeThat:       return ["Feeling sassy", "Confidence"]
+        // Good
+        case .goodDay:               return ["Morning", "Positivity"]
+        case .feelingPositive:       return ["Positivity", "Gratitude"]
+        case .makingProgress:        return ["Purpose", "Dream big"]
+        case .feelingConnected:      return ["Romance", "Gratitude"]
+        case .calmPeaceful:          return ["Self-love", "Positivity"]
+        // Okay
+        case .gettingThrough:        return ["Self-love", "Positivity"]
+        case .feelingFlat:           return ["Positivity", "Inner child"]
+        case .notBadNotGreat:        return ["Self-talk", "Gratitude"]
+        case .distractedRestless:    return ["Self-talk", "Purpose"]
+        case .couldUsePickMeUp:      return ["Positivity", "Confidence"]
+        // Not Great
+        case .lowEnergy:             return ["Purpose", "Positivity"]
+        case .comparingToOthersNG:   return ["Self-love", "Overthinking"]
+        case .notGoodEnoughNG:       return ["Self-love", "Confidence"]
+        case .stressedAboutLife:     return ["Anxiety", "Self-talk"]
+        case .roughDay:              return ["Self-love", "Gratitude"]
+        // Struggling
+        case .anxiousOverwhelmed:    return ["Anxiety", "Self-love"]
+        case .comparingToOthersS:    return ["Self-love", "Overthinking"]
+        case .notGoodEnoughS:        return ["Self-love", "Confidence"]
+        case .lonelyDisconnected:    return ["Romance", "Inner child", "Attraction"]
+        case .stuckInNegativeThoughts: return ["Overthinking", "Self-talk"]
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        // Great
+        case .feelingConfident:      return "💪"
+        case .excitedAboutFuture:    return "🚀"
+        case .gratefulForPeople:     return "💛"
+        case .ridingGoodEnergy:      return "✨"
+        case .feelingLikeThat:       return "💅"
+        // Good
+        case .goodDay:               return "☀️"
+        case .feelingPositive:       return "🌱"
+        case .makingProgress:        return "📈"
+        case .feelingConnected:      return "🤝"
+        case .calmPeaceful:          return "🧘"
+        // Okay
+        case .gettingThrough:        return "🚶"
+        case .feelingFlat:           return "😶"
+        case .notBadNotGreat:        return "🤷"
+        case .distractedRestless:    return "💭"
+        case .couldUsePickMeUp:      return "☕"
+        // Not Great
+        case .lowEnergy:             return "🔋"
+        case .comparingToOthersNG:   return "📱"
+        case .notGoodEnoughNG:       return "🪞"
+        case .stressedAboutLife:     return "😤"
+        case .roughDay:              return "🌧️"
+        // Struggling
+        case .anxiousOverwhelmed:    return "😰"
+        case .comparingToOthersS:    return "📱"
+        case .notGoodEnoughS:        return "🪞"
+        case .lonelyDisconnected:    return "🫂"
+        case .stuckInNegativeThoughts: return "🌀"
+        }
+    }
+
+    static func reasons(for mood: MentalHealthMood) -> [MoodReason] {
+        switch mood {
+        case .great:      return [.feelingConfident, .excitedAboutFuture, .gratefulForPeople, .ridingGoodEnergy, .feelingLikeThat]
+        case .good:       return [.goodDay, .feelingPositive, .makingProgress, .feelingConnected, .calmPeaceful]
+        case .okay:       return [.gettingThrough, .feelingFlat, .notBadNotGreat, .distractedRestless, .couldUsePickMeUp]
+        case .notGreat:   return [.lowEnergy, .comparingToOthersNG, .notGoodEnoughNG, .stressedAboutLife, .roughDay]
+        case .struggling: return [.anxiousOverwhelmed, .comparingToOthersS, .notGoodEnoughS, .lonelyDisconnected, .stuckInNegativeThoughts]
+        }
+    }
+}
+
 // MARK: - Intervention Page Enum
 
 enum InterventionPage {
     case mentalHealthCheck
+    case reasonCheck
     case affirmation
     case confirmContinue
     case unlock
@@ -815,6 +1024,46 @@ struct MoodButton: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(isSelected ? Color(hex: mood.color) : Color(hex: "E2E8F0"), lineWidth: isSelected ? 2.5 : 1.5)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Reason Button Component
+
+struct ReasonButton: View {
+    let reason: MoodReason
+    let isSelected: Bool
+    let accentColor: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 16) {
+                Text(reason.emoji)
+                    .font(.system(size: 28))
+
+                Text(reason.rawValue)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(Color(hex: "1E293B"))
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(Color(hex: accentColor))
+                }
+            }
+            .padding(18)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(isSelected ? Color(hex: accentColor) : Color(hex: "E2E8F0"), lineWidth: isSelected ? 2.5 : 1.5)
                     )
             )
         }

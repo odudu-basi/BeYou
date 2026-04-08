@@ -216,6 +216,14 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         stats = sharedData.loadUsageStats()
         print("🛡️ SHIELD: Reloaded fresh stats from App Groups after migration")
 
+        // If it's a new day but the main app hasn't run checkDailyReset() yet,
+        // treat all breakthroughs as 0 to avoid showing stale data
+        if let lastResetDate = sharedData.sharedDefaults?.object(forKey: "lastResetDate") as? Date,
+           !Calendar.current.isDateInToday(lastResetDate) {
+            print("🛡️ SHIELD: ⚠️ New day detected but main app hasn't reset yet — treating breakthroughs as 0")
+            stats.breakthroughsByApp.removeAll()
+        }
+
         // NOTE: We do NOT write intervention state here.
         // ShieldConfigurationExtension is READ-ONLY for intervention state.
         // ShieldActionExtension writes pendingApp, interventionActive, and blockType
@@ -411,8 +419,6 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         } else if blockType == "schedule" {
             let showInstructions = sharedData.loadScheduleShowInstructions()
             titleText = showInstructions ? "How to Unblock" : "Stay Focused"
-        } else if breakthroughs >= limit {
-            titleText = "Daily Limit Reached"
         } else {
             // Intention block — check if intervention is active (State 2)
             let isInterventionActive = sharedData.loadInterventionActive()
@@ -434,8 +440,6 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             } else {
                 subtitleText = "This is your scheduled disconnect time.\n\nStay focused and make the most of this moment."
             }
-        } else if breakthroughs >= limit {
-            subtitleText = "You've opened this app \(breakthroughs)/\(limit) times today.\n\nDon't you think that's enough scrolling for today?"
         } else if isInterventionActive {
             // STATE 2: User pressed Continue — waiting for notification
             subtitleText = "Tap the notification or open the BeYou app to open this app."

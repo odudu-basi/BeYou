@@ -1,7 +1,7 @@
 import SwiftUI
 import RevenueCat
 import FamilyControls
-import RevenueCatUI
+import SuperwallKit
 
 @available(iOS 16.0, *)
 @main
@@ -10,13 +10,17 @@ struct BeYouSwiftApp: App {
     @StateObject private var screenTimeManager = ScreenTimeManager()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var showExpiredPaywall = false
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // Set up notification delegate for handling taps
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
 
-        // Configure RevenueCat
+        // Configure RevenueCat first (needed before syncing subscription status)
         SubscriptionManager.shared.configure()
+
+        // Configure Superwall + sync subscription status from RevenueCat
+        SuperwallService.configure()
 
         // Configure Mixpanel analytics
         AnalyticsManager.shared.configure()
@@ -33,16 +37,25 @@ struct BeYouSwiftApp: App {
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
-                .fullScreenCover(isPresented: $showExpiredPaywall) {
-                    PaywallView()
-                        .onPurchaseCompleted { customerInfo in
-                            SubscriptionManager.shared.syncEntitlementStatus(from: customerInfo)
-                            showExpiredPaywall = false
+                .onChange(of: showExpiredPaywall) { shouldShow in
+                    if shouldShow {
+                        showExpiredPaywallFlow()
+                    }
+                }
+                // Re-check subscription when app comes to foreground
+                .onChange(of: scenePhase) { newPhase in
+                    if newPhase == .active {
+                        Task {
+                            await showPaywallIfExpired()
                         }
-                        .onRestoreCompleted { customerInfo in
-                            SubscriptionManager.shared.syncEntitlementStatus(from: customerInfo)
-                            showExpiredPaywall = false
-                        }
+                    }
+                }
+                // Show paywall if subscription expires mid-session
+                .onReceive(SubscriptionManager.shared.$isProUser) { isProUser in
+                    guard SharedDataManager.shared.loadHasCompletedSetup() else { return }
+                    if !isProUser && !showExpiredPaywall {
+                        showExpiredPaywall = true
+                    }
                 }
                 .task {
                     // Track app open
@@ -111,6 +124,36 @@ struct BeYouSwiftApp: App {
         }
     }
 
+    private func showExpiredPaywallFlow() {
+        let handler = PaywallPresentationHandler()
+        handler.onPresent { paywallInfo in
+            AnalyticsManager.shared.trackPaywallShown(placement: "subscription_expired")
+        }
+        handler.onDismiss { _, _ in
+            // If still not subscribed, re-show
+            if !SubscriptionManager.shared.isProUser {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showExpiredPaywallFlow()
+                }
+            } else {
+                showExpiredPaywall = false
+            }
+        }
+        handler.onSkip { _ in
+            if !SubscriptionManager.shared.isProUser {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showExpiredPaywallFlow()
+                }
+            } else {
+                showExpiredPaywall = false
+            }
+        }
+        Superwall.shared.register(placement: "onboarding_paywall", handler: handler) {
+            // Feature block — user purchased
+            showExpiredPaywall = false
+        }
+    }
+
     private func showPaywallIfExpired() async {
         // Only for existing users who have completed setup
         guard SharedDataManager.shared.loadHasCompletedSetup() else { return }
@@ -121,7 +164,6 @@ struct BeYouSwiftApp: App {
         // If not a pro user, show the paywall
         if !SubscriptionManager.shared.isProUser {
             print("💰 APP: Subscription inactive/expired — showing paywall")
-            AnalyticsManager.shared.trackPaywallShown(placement: "subscription_expired")
             showExpiredPaywall = true
         }
     }

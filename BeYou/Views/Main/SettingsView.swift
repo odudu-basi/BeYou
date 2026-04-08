@@ -345,7 +345,7 @@ struct WidgetSetupSheet: View {
         ("Long press your Home Screen", "Tap and hold on an empty area of your Home Screen until apps start wiggling"),
         ("Tap the '+' button", "Look for the plus button in the top-left corner and tap it"),
         ("Search for 'BeYou'", "Use the search bar at the top to find the BeYou app widgets"),
-        ("Select your widget", "Choose the Discipline Score or Affirmation widget from the available options"),
+        ("Select your widget", "Choose the Affirmation widget from the available options"),
         ("Tap 'Add Widget'", "Confirm adding the widget to your Home Screen")
     ]
 
@@ -500,37 +500,6 @@ struct WidgetSetupSheet: View {
                                 .foregroundColor(Color(hex: "666666"))
 
                             HStack(spacing: 20) {
-                                // Discipline Score widget preview
-                                VStack(spacing: 6) {
-                                    ZStack {
-                                        Circle()
-                                            .stroke(Color(hex: "E0E0E0"), lineWidth: 3)
-                                            .frame(width: 36, height: 36)
-
-                                        Circle()
-                                            .trim(from: 0, to: 0.88)
-                                            .stroke(Color(hex: "10B981"), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                                            .frame(width: 36, height: 36)
-                                            .rotationEffect(.degrees(-90))
-
-                                        Text("88")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundColor(Color(hex: "1A1A1A"))
-                                    }
-
-                                    Text("Discipline\nScore")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(Color(hex: "999999"))
-                                        .multilineTextAlignment(.center)
-                                }
-                                .padding(14)
-                                .background(Color.white)
-                                .cornerRadius(14)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color(hex: "EBEBEB"), lineWidth: 1)
-                                )
-
                                 // Affirmation widget preview
                                 VStack(spacing: 6) {
                                     Image(systemName: "text.quote")
