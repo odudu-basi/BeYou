@@ -1,5 +1,6 @@
 import SwiftUI
 import ManagedSettings
+import SuperwallKit
 
 @available(iOS 16.0, *)
 struct InterventionSheet: View {
@@ -15,6 +16,7 @@ struct InterventionSheet: View {
     @State private var selectedDuration: Int? = nil // For scheduled blocks
     @State private var aiAffirmations: [String]? = nil
     @State private var isLoadingAffirmations = false
+    @State private var showPaywallForUnlock = false
     @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "starry-mountains"
     @AppStorage("selectedAffirmationCategories") private var selectedCategoriesData: Data = Data()
     @AppStorage("interventionAffirmationCount") private var interventionCount: Int = 3
@@ -457,6 +459,38 @@ struct InterventionSheet: View {
         .sheet(isPresented: $showThemePicker) {
             ThemePickerSheet(selectedThemeId: $selectedThemeId, isPresented: $showThemePicker)
         }
+        .onChange(of: showPaywallForUnlock) { shouldShow in
+            if shouldShow {
+                showPaywallForUnlock = false
+                let handler = PaywallPresentationHandler()
+                handler.onPresent { _ in
+                    AnalyticsManager.shared.trackPaywallShown(placement: "intervention_unlock")
+                }
+                handler.onDismiss { _, result in
+                    switch result {
+                    case .purchased, .restored:
+                        withAnimation {
+                            currentPage = .unlock
+                        }
+                    default:
+                        break // Stay on the confirm page
+                    }
+                }
+                handler.onSkip { _ in
+                    if SubscriptionManager.shared.isProUser {
+                        withAnimation {
+                            currentPage = .unlock
+                        }
+                    }
+                }
+                Superwall.shared.register(placement: "onboarding_paywall", handler: handler) {
+                    // Feature block — user purchased
+                    withAnimation {
+                        currentPage = .unlock
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Unlock Page
@@ -604,8 +638,12 @@ struct InterventionSheet: View {
 
                 // Red button — continue to unlock
                 Button(action: {
-                    withAnimation {
-                        currentPage = .unlock
+                    if SubscriptionManager.shared.isProUser {
+                        withAnimation {
+                            currentPage = .unlock
+                        }
+                    } else {
+                        showPaywallForUnlock = true
                     }
                 }) {
                     Text("Yes, continue scrolling")

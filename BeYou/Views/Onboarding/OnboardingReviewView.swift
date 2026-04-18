@@ -7,6 +7,7 @@ struct OnboardingReviewView: View {
     let onNext: () -> Void
     let onBack: (() -> Void)?
 
+    @Environment(\.requestReview) private var requestReview
     @State private var hasTappedSupportButton = false
 
     var body: some View {
@@ -95,6 +96,7 @@ struct OnboardingReviewView: View {
                         Button(action: {
                             hasTappedSupportButton = true
                             requestReview()
+                            AnalyticsManager.shared.track("Review Prompt Requested")
                         }) {
                             HStack(spacing: 10) {
                                 Image(systemName: "star.fill")
@@ -124,7 +126,6 @@ struct OnboardingReviewView: View {
                 // Continue button
                 Button(action: {
                     if !hasTappedSupportButton {
-                        // They skipped "Support Our Mission" — show review prompt as last chance
                         requestReview()
                     }
                     onNext()
@@ -157,11 +158,4 @@ struct OnboardingReviewView: View {
         }
     }
 
-    private func requestReview() {
-        if let scene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
-            SKStoreReviewController.requestReview(in: scene)
-            hasTappedSupportButton = true
-        }
-    }
 }

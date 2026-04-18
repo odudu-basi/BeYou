@@ -18,32 +18,33 @@ struct PaywallOnboardingView: View {
 
     private func showPaywall() {
         let handler = PaywallPresentationHandler()
-        handler.onPresent { paywallInfo in
+        handler.onPresent { _ in
             AnalyticsManager.shared.trackPaywallShown(placement: "onboarding_paywall")
         }
-        handler.onDismiss { _, _ in
-            handleDismiss()
+        handler.onDismiss { _, result in
+            switch result {
+            case .purchased, .restored:
+                appState.navigateTo(.screenTimeConnect)
+            default:
+                // Declined — re-show paywall
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showPaywall()
+                }
+            }
         }
         handler.onSkip { _ in
-            handleDismiss()
+            // Superwall skipped — check if already subscribed
+            if SubscriptionManager.shared.isProUser {
+                appState.navigateTo(.screenTimeConnect)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showPaywall()
+                }
+            }
         }
 
         Superwall.shared.register(placement: "onboarding_paywall", handler: handler) {
-            // Feature block — user purchased or is already subscribed
             appState.navigateTo(.screenTimeConnect)
-        }
-    }
-
-    private func handleDismiss() {
-        // If user purchased, proceed
-        if SubscriptionManager.shared.isProUser {
-            appState.navigateTo(.screenTimeConnect)
-            return
-        }
-
-        // Not subscribed — show paywall again
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            showPaywall()
         }
     }
 }

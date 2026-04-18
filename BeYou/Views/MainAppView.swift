@@ -36,11 +36,6 @@ struct MainAppView: View {
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 checkForPendingIntervention()
-                // Delay re-applying blocks to allow unlock state to fully persist
-                // Prevents race condition where reapply reads stale data after intervention
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    screenTimeManager.reapplyAllBlocks(appState: appState)
-                }
             }
         }
         .onChange(of: appState.isInterventionActive) { isActive in

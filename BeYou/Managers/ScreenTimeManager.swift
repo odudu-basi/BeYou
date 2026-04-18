@@ -29,7 +29,7 @@ class ScreenTimeManager: ObservableObject {
     private var appStores: [String: ManagedSettingsStore] = [:]
 
     // Cancellable re-block timers keyed by store key
-    private var reblockTimers: [String: DispatchWorkItem] = [:]
+    // Re-blocking is handled entirely by DeviceActivityEvent in the monitor extension
 
     enum AuthorizationStatus {
         case notDetermined
@@ -173,25 +173,11 @@ class ScreenTimeManager: ObservableObject {
             sharedData.savePendingReblock(storeKey: storeKey, tokenData: tokenData)
         }
 
-        // Layer 1: DeviceActivityEvent — monitors app usage in the extension process.
-        // When the user accumulates `duration` seconds of usage on this app,
+        // DeviceActivityEvent — monitors app usage in the extension process.
+        // When the user accumulates `duration` seconds of actual usage on this app,
         // eventDidReachThreshold fires in the monitor extension and re-blocks.
         // This works even if the main app is killed.
         scheduleUnlockReblockEvent(forKey: storeKey, token: token, duration: duration)
-
-        // In-memory timer as fast-path (fires if app is alive)
-        // Cancel any existing timer for this store key
-        reblockTimers[storeKey]?.cancel()
-        let workItem = DispatchWorkItem { [weak self] in
-            print("⏰ SCREEN TIME: Re-blocking \(key) after in-memory timeout")
-            self?.blockApp(token: token, forKey: storeKey)
-            self?.sharedData.removePendingReblock(storeKey: storeKey)
-            // Stop the event monitor since we handled it
-            self?.activityCenter.stopMonitoring([DeviceActivityName("unlock_\(storeKey)")])
-            self?.reblockTimers.removeValue(forKey: storeKey)
-        }
-        reblockTimers[storeKey] = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
     }
 
     /// Schedule a DeviceActivityEvent to re-block an app after unlock usage reaches the limit.
@@ -282,10 +268,7 @@ class ScreenTimeManager: ObservableObject {
         let storeKey = resolveStoreKey(from: key)
         print("🗑️ SCREEN TIME: Resolved store key: \(storeKey)")
 
-        // Cancel any pending re-block timer so it doesn't re-block after deletion
-        reblockTimers[storeKey]?.cancel()
-        reblockTimers.removeValue(forKey: storeKey)
-        print("🗑️ SCREEN TIME: Cancelled re-block timer for \(storeKey)")
+        // Stop any pending re-block monitors
 
         // Stop the DeviceActivity monitor that would re-block from the extension
         activityCenter.stopMonitoring([DeviceActivityName("unlock_\(storeKey)")])
@@ -310,74 +293,8 @@ class ScreenTimeManager: ObservableObject {
         }
     }
 
-    // MARK: - Re-apply Blocks on Launch
-
-    /// Re-applies shields for all app intentions on app launch.
-    /// This catches cases where the re-block timer (DispatchQueue.main.asyncAfter)
-    /// never fired because iOS suspended/killed the app.
-    func reapplyAllBlocks(appState: AppState) {
-        guard authorizationStatus == .approved else {
-            print("❌ SCREEN TIME: Not approved, cannot reapply blocks")
-            return
-        }
-
-        print("🔒 SCREEN TIME: Reapplying blocks for all app intentions...")
-
-        let intention = sharedData.loadAppIntention()
-        var reblocked = 0
-
-        for (key, appIntention) in intention.perAppIntentions {
-            guard let tokenData = appIntention.appTokenData,
-                  let token = try? JSONDecoder().decode(ApplicationToken.self, from: tokenData) else {
-                continue
-            }
-
-            let storeKey = resolveStoreKey(from: key)
-
-            // Check if this app is currently in an active unlock session
-            if appState.isAppUnlocked(key) {
-                // Still unlocked — re-schedule all fallback layers for remaining time
-                if let expiry = appState.appUsageStats.unlockExpiryByApp[key] {
-                    let remaining = expiry.timeIntervalSinceNow
-                    if remaining > 0 {
-                        print("⏰ SCREEN TIME: \(key) still unlocked, re-scheduling reblock in \(Int(remaining))s")
-                        // Ensure pending reblock data exists for the monitor
-                        if let tokenData = try? JSONEncoder().encode(token) {
-                            sharedData.savePendingReblock(storeKey: storeKey, tokenData: tokenData)
-                        }
-                        // Layer 1: Usage-based event in monitor extension
-                        scheduleUnlockReblockEvent(forKey: storeKey, token: token, duration: remaining)
-                        // In-memory timer as fast-path (cancellable)
-                        reblockTimers[storeKey]?.cancel()
-                        let workItem = DispatchWorkItem { [weak self] in
-                            print("⏰ SCREEN TIME: Re-blocking \(key) after resumed timer")
-                            self?.blockApp(token: token, forKey: storeKey)
-                            self?.sharedData.removePendingReblock(storeKey: storeKey)
-                            self?.activityCenter.stopMonitoring([DeviceActivityName("unlock_\(storeKey)")])
-                            self?.reblockTimers.removeValue(forKey: storeKey)
-                        }
-                        reblockTimers[storeKey] = workItem
-                        DispatchQueue.main.asyncAfter(deadline: .now() + remaining, execute: workItem)
-                        continue
-                    }
-                }
-                // Expiry passed while app was suspended — clear unlock state
-                appState.appUsageStats.unlockedApps.remove(key)
-                appState.appUsageStats.unlockExpiryByApp.removeValue(forKey: key)
-                sharedData.removePendingReblock(storeKey: storeKey)
-            }
-
-            // App should be blocked — re-apply shield
-            blockApp(token: token, forKey: storeKey)
-            reblocked += 1
-        }
-
-        if reblocked > 0 {
-            // Save updated unlock state directly (saveAllData is private to AppState)
-            sharedData.saveUsageStats(appState.appUsageStats)
-        }
-        print("🔒 SCREEN TIME: Reapplied blocks for \(reblocked) apps")
-    }
+    // Re-blocking after unlock is handled entirely by DeviceActivityEvent in the monitor extension.
+    // No in-memory timers or reapplyAllBlocks needed — the extension survives app kills and reboots.
 
     // MARK: - Scheduled Blocking (Disconnect Times)
 

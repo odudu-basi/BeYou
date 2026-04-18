@@ -10,6 +10,7 @@ struct BeYouSwiftApp: App {
     @StateObject private var screenTimeManager = ScreenTimeManager()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var showExpiredPaywall = false
+    @State private var hasCompletedInitialPaywallCheck = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -42,19 +43,12 @@ struct BeYouSwiftApp: App {
                         showExpiredPaywallFlow()
                     }
                 }
-                // Re-check subscription when app comes to foreground
+                // Re-check subscription when app returns to foreground (not on initial launch)
                 .onChange(of: scenePhase) { newPhase in
-                    if newPhase == .active {
+                    if newPhase == .active && hasCompletedInitialPaywallCheck {
                         Task {
                             await showPaywallIfExpired()
                         }
-                    }
-                }
-                // Show paywall if subscription expires mid-session
-                .onReceive(SubscriptionManager.shared.$isProUser) { isProUser in
-                    guard SharedDataManager.shared.loadHasCompletedSetup() else { return }
-                    if !isProUser && !showExpiredPaywall {
-                        showExpiredPaywall = true
                     }
                 }
                 .task {
@@ -69,11 +63,9 @@ struct BeYouSwiftApp: App {
                     // Check daily reset
                     appState.checkDailyReset()
 
-                    // Re-apply blocks for any apps whose unlock timers expired while app was suspended
-                    screenTimeManager.reapplyAllBlocks(appState: appState)
-
                     // Re-show paywall if subscription expired (existing users only)
                     await showPaywallIfExpired()
+                    hasCompletedInitialPaywallCheck = true
 
                     // Sync remote affirmations from Supabase (daily, silent fail if offline)
                     await AffirmationService.shared.syncRemoteAffirmations()
@@ -129,23 +121,24 @@ struct BeYouSwiftApp: App {
         handler.onPresent { paywallInfo in
             AnalyticsManager.shared.trackPaywallShown(placement: "subscription_expired")
         }
-        handler.onDismiss { _, _ in
-            // If still not subscribed, re-show
-            if !SubscriptionManager.shared.isProUser {
+        handler.onDismiss { _, result in
+            switch result {
+            case .purchased, .restored:
+                showExpiredPaywall = false
+            default:
+                // Declined — re-show paywall
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     showExpiredPaywallFlow()
                 }
-            } else {
-                showExpiredPaywall = false
             }
         }
         handler.onSkip { _ in
-            if !SubscriptionManager.shared.isProUser {
+            if SubscriptionManager.shared.isProUser {
+                showExpiredPaywall = false
+            } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     showExpiredPaywallFlow()
                 }
-            } else {
-                showExpiredPaywall = false
             }
         }
         Superwall.shared.register(placement: "onboarding_paywall", handler: handler) {
@@ -155,10 +148,10 @@ struct BeYouSwiftApp: App {
     }
 
     private func showPaywallIfExpired() async {
-        // Only for existing users who have completed setup
-        guard SharedDataManager.shared.loadHasCompletedSetup() else { return }
+        // Only for users who have completed onboarding (at minimum)
+        guard SharedDataManager.shared.loadHasCompletedOnboarding() else { return }
 
-        // Refresh entitlements to get latest status
+        // Refresh entitlements to get latest status (waits for RevenueCat)
         await SubscriptionManager.shared.refreshEntitlements()
 
         // If not a pro user, show the paywall

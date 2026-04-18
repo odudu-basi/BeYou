@@ -36,6 +36,45 @@ enum OnboardingStep: Int, CaseIterable {
     case iconStyle
     case commitment
 
+    var screenName: String {
+        switch self {
+        case .referral: return "Referral"
+        case .name: return "Name"
+        case .gender: return "Gender"
+        case .goals: return "Goals"
+        case .currentScreenTime: return "Current Screen Time"
+        case .goalTime: return "Goal Time"
+        case .timeWasters: return "Time Wasters"
+        case .hardToQuit: return "Hard to Quit"
+        case .feelings: return "Feelings"
+        case .transform: return "Transform"
+        case .age: return "Age"
+        case .loadingPlan: return "Loading Plan"
+        case .currentRate: return "Current Rate"
+        case .goodNews: return "Good News"
+        case .triedBefore: return "Tried Before"
+        case .affirmations: return "Affirmations"
+        case .relationship: return "Relationship"
+        case .religion: return "Religion"
+        case .beliefs: return "Beliefs"
+        case .affirmationsInfo: return "Affirmations Info"
+        case .familiar: return "Familiarity"
+        case .positivity: return "Positivity"
+        case .notificationPermission: return "Notification Permission"
+        case .mood: return "Mood"
+        case .studies: return "Studies"
+        case .improve: return "Improve"
+        case .review: return "Review"
+        case .clearVision: return "Clear Vision"
+        case .journey: return "Journey"
+        case .believe: return "Believe"
+        case .reality: return "Reality"
+        case .categories: return "Categories"
+        case .iconStyle: return "Icon Style"
+        case .commitment: return "Commitment"
+        }
+    }
+
     var next: OnboardingStep? {
         let allCases = Self.allCases
         guard let currentIndex = allCases.firstIndex(of: self),
@@ -140,6 +179,12 @@ struct OnboardingCoordinator: View {
             }
         }
         .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+        .onAppear {
+            trackScreenView(currentStep)
+        }
+        .onChange(of: currentStep) { newStep in
+            trackScreenView(newStep)
+        }
     }
 
     private func advance() {
@@ -174,6 +219,14 @@ struct OnboardingCoordinator: View {
                 }
             }
         }
+    }
+
+    private func trackScreenView(_ step: OnboardingStep) {
+        AnalyticsManager.shared.track("Onboarding Screen Viewed", properties: [
+            "screen_name": step.screenName,
+            "screen_index": step.rawValue,
+            "total_steps": totalSteps
+        ])
     }
 
     private func finishOnboarding() {
