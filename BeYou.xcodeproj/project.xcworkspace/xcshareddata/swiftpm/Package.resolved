@@ -1,5 +1,5 @@
 {
-  "originHash" : "329347c8b8775c425f67fdc5df014b3441dd4cac8348c47e5dd79ace2ce5d2a4",
+  "originHash" : "4b2f5fc1f03e4652d8b0ab3b44463440c3307422890a7a8565cc0c199a201a82",
   "pins" : [
     {
       "identity" : "mixpanel-ios-session-replay-package",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "aa839af572d9a85f6ec745d693019cc334473673",
         "version" : "4.14.0"
+      }
+    },
+    {
+      "identity" : "tiktok-business-ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tiktok/tiktok-business-ios-sdk",
+      "state" : {
+        "revision" : "4d330d4da158190d2c67b2142c2bd36c9eb5291e",
+        "version" : "1.6.1"
       }
     }
   ],

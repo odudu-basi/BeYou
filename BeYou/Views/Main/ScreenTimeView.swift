@@ -387,7 +387,7 @@ struct ScreenTimeView: View {
                                         .shadow(color: selectedDayIndex == index ? Color.black.opacity(0.06) : .clear, radius: 4, y: 2)
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HapticButtonStyle())
                         }
                     }
                     .padding(.horizontal, 16)

@@ -74,6 +74,7 @@ struct AppIntentionCard: View {
             .padding(12)
             .contentShape(Rectangle())
             .onTapGesture {
+                Haptics.tap()
                 onTap()
             }
 

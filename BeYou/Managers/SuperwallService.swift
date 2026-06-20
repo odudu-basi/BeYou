@@ -93,6 +93,12 @@ enum SuperwallService {
             purchaseController: purchaseController
         )
 
+        // Never leave the status as .unknown — Superwall won't present a paywall until the
+        // status is known, which on a FRESH install (RevenueCat's customerInfo stream hasn't
+        // emitted yet) hangs the onboarding paywall on a blank screen. Default to .inactive;
+        // the customerInfo stream upgrades it to .active if the user is actually subscribed.
+        Superwall.shared.subscriptionStatus = .inactive
+
         purchaseController.syncSubscriptionStatus()
     }
 }

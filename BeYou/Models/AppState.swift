@@ -34,17 +34,20 @@ class AppState: ObservableObject {
         // Load saved data on init
         loadPersistedData()
 
-        // Determine starting screen based on completion flags
+        // Always start at splash — SplashView determines where to go next
+        currentScreen = .splash
+    }
+
+    func destinationAfterSplash() -> AppScreen {
         if sharedData.loadHasCompletedSetup() || !onboardingData.appIntention.perAppIntentions.isEmpty {
-            // If setup was completed, or user has app intentions (legacy installs before flag was added)
             if !sharedData.loadHasCompletedSetup() {
                 sharedData.saveHasCompletedSetup(true)
             }
-            currentScreen = .main
+            return .main
         } else if sharedData.loadHasCompletedOnboarding() {
-            currentScreen = .screenTimeConnect
+            return .screenTimeConnect
         }
-        // Otherwise stays at .splash (default)
+        return .onboarding
     }
 
     func navigateTo(_ screen: AppScreen) {
@@ -172,10 +175,10 @@ class AppState: ObservableObject {
                 total: appUsageStats.breakthroughsToday
             )
 
-            // New day - check per-app streaks
-            for (appName, yesterdayBreakthroughs) in appUsageStats.breakthroughsByApp {
-                let appIntention = onboardingData.appIntention.perAppIntentions[appName]
-                let limit = appIntention?.timesPerDay ?? 10
+            // New day - check per-app streaks (loop over all active intentions, not just apps with breakthroughs)
+            for (appName, appIntention) in onboardingData.appIntention.perAppIntentions {
+                let yesterdayBreakthroughs = appUsageStats.breakthroughsByApp[appName] ?? 0
+                let limit = appIntention.timesPerDay
 
                 if yesterdayBreakthroughs <= limit {
                     let currentStreak = (appUsageStats.currentStreakByApp[appName] ?? 0) + 1
@@ -495,4 +498,19 @@ struct OnboardingData: Codable {
     var blockedAppTokens: [String] = []
     var dailyGoal: String?
     var allowedApps: [String] = []
+
+    // Onboarding 2 fields
+    var morningPerson: String?
+    var referralSource: String?
+    var biggestObstacle: String?
+    var alarmCount: String?
+    var trustFirstAlarm: String?
+    var turnOffAlarm: String?
+    var alarmThought: String?
+    var negotiateStayInBed: String?
+    var usualWakeTime: String?
+    var idealWakeTime: String?
+    var feelAfterWaking: String?
+    var timeToFeelAwake: String?
+    var clearBrainFog: String?
 }

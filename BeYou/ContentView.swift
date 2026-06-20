@@ -9,12 +9,8 @@ struct ContentView: View {
             switch appState.currentScreen {
             case .splash:
                 SplashView()
-            case .welcome:
-                WelcomeView()
-            case .onboarding:
-                OnboardingCoordinator()
-            case .paywall:
-                PaywallOnboardingView()
+            case .welcome, .onboarding, .paywall:
+                OnboardingCoordinator2()
             case .screenTimeConnect:
                 ScreenTimeConnectView()
             case .setup:
@@ -24,5 +20,11 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.light)
+        .buttonStyle(HapticButtonStyle())   // app-wide: every button taps with a haptic
     }
+}
+
+#Preview {
+    ContentView()
+        .environmentObject(AppState())
 }

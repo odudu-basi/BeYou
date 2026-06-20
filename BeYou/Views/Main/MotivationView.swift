@@ -333,10 +333,10 @@ struct MotivationView: View {
             )
         }
         .onAppear {
-            // Seed categories from onboarding selections on first use
-            if !hasInitializedCategories && !appState.onboardingData.categories.isEmpty {
-                let onboardingCategories = Set(appState.onboardingData.categories)
-                if let data = try? JSONEncoder().encode(onboardingCategories) {
+            // Default selection: Self-love + Confidence (auto-selected on first use)
+            if !hasInitializedCategories {
+                let defaultCategories: Set<String> = ["Self-love", "Confidence"]
+                if let data = try? JSONEncoder().encode(defaultCategories) {
                     selectedCategoriesData = data
                 }
                 hasInitializedCategories = true
@@ -363,6 +363,7 @@ struct MotivationView: View {
         let image = renderAffirmationImage(text: text, theme: currentTheme)
         shareImage = image
         showShareSheet = true
+        AnalyticsManager.shared.trackAffirmationShared()
     }
 
     @MainActor
@@ -384,6 +385,7 @@ struct MotivationView: View {
         // Don't allow favoriting the empty-state message
         guard text != "No favourites yet. Heart some affirmations to save them here." else { return }
         var favs = favoriteAffirmations
+        AnalyticsManager.shared.trackAffirmationFavorited(favorited: !favs.contains(text))
         if favs.contains(text) {
             favs.remove(text)
             // If showing favourites and we just removed the last one, or current index is out of bounds, reset
@@ -480,7 +482,7 @@ struct ThemePickerSheet: View {
                                 }
                                 .padding(.vertical, 8)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HapticButtonStyle())
 
                             // Grid content
                             if !collapsedSections.contains(section.id) {
@@ -494,6 +496,7 @@ struct ThemePickerSheet: View {
                                                 // Sync to App Group so widgets can read it
                                                 UserDefaults(suiteName: "group.com.odudu.BeYou")?.set(theme.id, forKey: "selectedMotivationTheme")
                                                 WidgetCenter.shared.reloadAllTimelines()
+                                                AnalyticsManager.shared.trackThemeChanged(themeId: theme.id)
                                             }
                                         )
                                     }
@@ -561,7 +564,7 @@ struct ThemePreviewCell: View {
                     .lineLimit(1)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HapticButtonStyle())
     }
 }
 
@@ -684,7 +687,7 @@ struct CategoryPickerSheet: View {
                                 .stroke(localSelection.contains("Favourites") ? Color.clear : Color(hex: "E0E0E0"), lineWidth: 1)
                         )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(HapticButtonStyle())
                     .padding(.horizontal, 24)
 
                     // Religion toggle (if user has one)
@@ -721,7 +724,7 @@ struct CategoryPickerSheet: View {
                                     .stroke(includeReligious ? Color.clear : Color(hex: "E0E0E0"), lineWidth: 1)
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HapticButtonStyle())
                         .padding(.horizontal, 24)
                     }
 
@@ -757,7 +760,7 @@ struct CategoryPickerSheet: View {
                                         .stroke(isSelected ? Color.clear : Color(hex: "E0E0E0"), lineWidth: 1)
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HapticButtonStyle())
                         }
                     }
                     .padding(.horizontal, 24)
@@ -811,6 +814,7 @@ struct CategoryPickerSheet: View {
         if let data = try? JSONEncoder().encode(toSave) {
             selectedCategoriesData = data
         }
+        AnalyticsManager.shared.trackAffirmationCategoryChanged(categories: Array(localSelection))
         isPresented = false
         onDismiss()
     }

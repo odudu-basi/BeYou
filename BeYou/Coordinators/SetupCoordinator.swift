@@ -5,6 +5,7 @@ enum SetupStep: Int, CaseIterable {
     case dailyGoal
     case appIntention
     case intentionComplete
+    case meditationTime
     case complete
 
     var next: SetupStep? {
@@ -47,6 +48,8 @@ struct SetupCoordinator: View {
                 }, onBack: goBack)
             case .intentionComplete:
                 SetupIntentionCompleteView(onNext: advance, onBack: goBack)
+            case .meditationTime:
+                SetupMeditationTimeView(onNext: advance, onSkip: advance, onBack: goBack)
             case .complete:
                 SetupCompleteView(onNext: finishSetup, onBack: goBack)
             }

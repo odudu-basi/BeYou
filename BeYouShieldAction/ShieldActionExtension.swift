@@ -29,7 +29,15 @@ class ShieldActionExtension: ShieldActionDelegate {
 
         switch action {
         case .primaryButtonPressed:
-            if blockType == "schedule" {
+            if blockType == "appBlock" {
+                // App Block shield is informational — Close just dismisses to home.
+                print("⚡ SHIELD ACTION: App Block - Close pressed")
+                completionHandler(.close)
+            } else if blockType == "meditation" {
+                // Meditation shield is informational — just close
+                print("⚡ SHIELD ACTION: Meditation - Close pressed")
+                completionHandler(.close)
+            } else if blockType == "schedule" {
                 // Schedule block flow
                 let showInstructions = sharedData.loadScheduleShowInstructions()
                 if showInstructions {
@@ -232,6 +240,20 @@ class ShieldActionExtension: ShieldActionDelegate {
     /// Determines whether this block is from an app intention or a scheduled session
     /// Checks if THIS SPECIFIC APP is in an active schedule's blocked list
     private func resolveBlockType(for application: ApplicationToken, appName: String) -> String {
+        // App Block blocks every app — highest priority.
+        if sharedData.loadAppBlockActive() {
+            print("⚡ SHIELD ACTION: App block is active — using appBlock block type")
+            return "appBlock"
+        }
+
+        // Check meditation next (next highest priority)
+        // If meditation block is active, all blocked apps use meditation type
+        let isMeditationActive = sharedData.loadMeditationBlockActive()
+        if isMeditationActive {
+            print("⚡ SHIELD ACTION: Meditation block is active — using meditation block type")
+            return "meditation"
+        }
+
         // Check if this specific app is in an active schedule's blocked list
         let isAppInSchedule: Bool
         if let currentAppData = try? JSONEncoder().encode(application) {
@@ -255,16 +277,12 @@ class ShieldActionExtension: ShieldActionDelegate {
         }
 
         if isAppInSchedule {
-            // App is in active schedule — schedule takes priority (even if it also has an intention)
             print("⚡ SHIELD ACTION: App is in active schedule — using schedule block type")
             return "schedule"
         } else if hasAppIntention {
             print("⚡ SHIELD ACTION: App has intention — using intention block type")
             return "intention"
         } else {
-            // Fallback: default to intention since app intention blocking is the primary use case.
-            // If an app is blocked but token matching fails (e.g., before migration completes),
-            // treating it as "intention" ensures recordBreakthrough gets called correctly.
             print("⚡ SHIELD ACTION: No specific match, defaulting to intention")
             return "intention"
         }
@@ -509,6 +527,24 @@ class SharedDataManager {
             return decoded
         }
         return [:]
+    }
+
+    // MARK: - Meditation Block
+
+    func loadMeditationBlockActive() -> Bool {
+        return sharedDefaults?.bool(forKey: "isMeditationBlockActive") ?? false
+    }
+
+    func loadAppBlockActive() -> Bool {
+        return sharedDefaults?.bool(forKey: "isAppBlockActive") ?? false
+    }
+
+    func isAppInMeditationBlock(_ tokenData: Data) -> Bool {
+        if let data = sharedDefaults?.data(forKey: "meditationBlockedTokens"),
+           let decoded = try? JSONDecoder().decode([Data].self, from: data) {
+            return decoded.contains(tokenData)
+        }
+        return false
     }
 
     // MARK: - Block Type

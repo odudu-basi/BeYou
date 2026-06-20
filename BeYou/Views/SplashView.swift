@@ -4,29 +4,47 @@ struct SplashView: View {
     @EnvironmentObject var appState: AppState
     @State private var scale: CGFloat = 0
     @State private var opacity: Double = 0
+    @State private var textOpacity: Double = 0
 
     var body: some View {
         ZStack {
             Color.white
                 .ignoresSafeArea()
 
-            Image("be-you-icon")
-                .resizable()
-                .scaledToFit()
-                .frame(width: UIScreen.main.bounds.width * 0.4,
-                       height: UIScreen.main.bounds.width * 0.4)
-                .cornerRadius(30)
-                .scaleEffect(scale)
-                .opacity(opacity)
+            VStack(spacing: 20) {
+                Image("be-you-icon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: UIScreen.main.bounds.width * 0.4,
+                           height: UIScreen.main.bounds.width * 0.4)
+                    .cornerRadius(30)
+                    .scaleEffect(scale)
+                    .opacity(opacity)
+
+                VStack(spacing: 6) {
+                    Text("BeYou Alarm")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(Color(hex: "1A1A1A"))
+
+                    Text("never snooze again")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(Color(hex: "666666"))
+                }
+                .opacity(textOpacity)
+            }
         }
         .onAppear {
-            // Fade in + bounce in from small to large
             withAnimation(.spring(response: 0.6, dampingFraction: 0.6)) {
                 scale = 1.0
                 opacity = 1.0
             }
 
-            // Gentle pulse after 1.5s
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                withAnimation(.easeIn(duration: 0.6)) {
+                    textOpacity = 1.0
+                }
+            }
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
                     scale = 1.1
@@ -38,9 +56,10 @@ struct SplashView: View {
                 }
             }
 
-            // Navigate to welcome after 2.5 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                appState.navigateTo(.welcome)
+                withAnimation {
+                    appState.navigateTo(appState.destinationAfterSplash())
+                }
             }
         }
     }

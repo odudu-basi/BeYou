@@ -184,28 +184,31 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
             }
         }
 
-        // Determine block type: "intention" (app has per-app intention) or "schedule" (scheduled session block)
-        // Check if THIS SPECIFIC APP is in an active schedule's blocked list
+        // Determine block type: "meditation", "intention", or "schedule"
+        // If meditation block is active, all blocked apps show meditation UI
+        let isAppBlockActive = sharedData.loadAppBlockActive()
+        let isMeditationActive = sharedData.loadMeditationBlockActive()
         let isAppInSchedule = isAppInActiveSchedule(application: application)
         let hasAppIntention = intention.perAppIntentions[appKey] != nil
         let timeWasterApps = sharedData.loadTimeWasterApps()
         let blockType: String
-        if isAppInSchedule && hasAppIntention {
-            // App has both — schedule takes priority while active
+        if isAppBlockActive {
+            // App Block blocks every app — highest priority.
+            blockType = "appBlock"
+        } else if isMeditationActive {
+            blockType = "meditation"
+        } else if isAppInSchedule && hasAppIntention {
             blockType = "schedule"
         } else if isAppInSchedule {
-            // App is blocked by schedule only
             blockType = "schedule"
         } else if hasAppIntention {
-            // App has intention only
             blockType = "intention"
         } else {
-            // Fallback — check if any schedule is active (category-based blocking etc.)
             blockType = sharedData.isAnyScheduleActive() ? "schedule" : "intention"
         }
 
         print("🛡️ SHIELD: Block type determination:")
-        //print("🛡️ SHIELD: - Has active schedule: \(hasActiveSchedule)")
+        print("🛡️ SHIELD: - Is meditation block: \(isMeditationActive)")
         print("🛡️ SHIELD: - Has app intention: \(hasAppIntention)")
         print("🛡️ SHIELD: - In time waster apps: \(timeWasterApps.contains(appKey))")
         print("🛡️ SHIELD: - Final block type: \(blockType)")
@@ -416,11 +419,14 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         if isUnlocked {
             titleText = "Session Active"
+        } else if blockType == "appBlock" {
+            titleText = "Start your day with positivity"
+        } else if blockType == "meditation" {
+            titleText = "Time to Meditate"
         } else if blockType == "schedule" {
             let showInstructions = sharedData.loadScheduleShowInstructions()
             titleText = showInstructions ? "How to Unblock" : "Stay Focused"
         } else {
-            // Intention block — check if intervention is active (State 2)
             let isInterventionActive = sharedData.loadInterventionActive()
             titleText = isInterventionActive ? "Almost There!" : "Stay Mindful"
         }
@@ -433,6 +439,10 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         if isUnlocked {
             subtitleText = "You're in a session. Use your time wisely."
+        } else if blockType == "appBlock" {
+            subtitleText = "To unblock all apps:\n\n1. Open the BeYou app\n2. Go to the Alarm tab\n3. Tap the red Stop button at the top"
+        } else if blockType == "meditation" {
+            subtitleText = "It's time for your meditation.\n\nOpen BeYou and tap the meditation sphere on the Meditate tab."
         } else if blockType == "schedule" {
             let showInstructions = sharedData.loadScheduleShowInstructions()
             if showInstructions {
@@ -456,6 +466,10 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
         if isUnlocked {
             buttonText = "Close"
+        } else if blockType == "appBlock" {
+            buttonText = "Close"
+        } else if blockType == "meditation" {
+            buttonText = "Close"
         } else if blockType == "schedule" {
             let showInstructions = sharedData.loadScheduleShowInstructions()
             buttonText = showInstructions ? "Close" : "Be Focused"
@@ -471,6 +485,12 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     }
 
     private func createSecondaryButtonLabel(blockType: String) -> ShieldConfiguration.Label? {
+        if blockType == "appBlock" {
+            return nil
+        }
+        if blockType == "meditation" {
+            return nil
+        }
         if blockType == "schedule" {
             let showInstructions = sharedData.loadScheduleShowInstructions()
             if showInstructions {
@@ -702,6 +722,24 @@ class SharedDataManager {
             return decoded
         }
         return [:]
+    }
+
+    // MARK: - Meditation Block
+
+    func loadMeditationBlockActive() -> Bool {
+        return sharedDefaults?.bool(forKey: "isMeditationBlockActive") ?? false
+    }
+
+    func loadAppBlockActive() -> Bool {
+        return sharedDefaults?.bool(forKey: "isAppBlockActive") ?? false
+    }
+
+    func isAppInMeditationBlock(_ tokenData: Data) -> Bool {
+        if let data = sharedDefaults?.data(forKey: "meditationBlockedTokens"),
+           let decoded = try? JSONDecoder().decode([Data].self, from: data) {
+            return decoded.contains(tokenData)
+        }
+        return false
     }
 
 }

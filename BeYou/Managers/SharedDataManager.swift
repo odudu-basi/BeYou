@@ -536,6 +536,132 @@ class SharedDataManager {
 
         return averages
     }
+
+    // MARK: - Meditation Block Data
+
+    func saveMeditationBlockedTokens(_ tokens: [Data]) {
+        if let encoded = try? JSONEncoder().encode(tokens) {
+            sharedDefaults?.set(encoded, forKey: "meditationBlockedTokens")
+            sharedDefaults?.synchronize()
+        }
+    }
+
+    func loadMeditationBlockedTokens() -> [Data] {
+        if let data = sharedDefaults?.data(forKey: "meditationBlockedTokens"),
+           let decoded = try? JSONDecoder().decode([Data].self, from: data) {
+            return decoded
+        }
+        return []
+    }
+
+    func saveMeditationBlockActive(_ active: Bool) {
+        sharedDefaults?.set(active, forKey: "isMeditationBlockActive")
+        sharedDefaults?.synchronize()
+    }
+
+    func loadMeditationBlockActive() -> Bool {
+        return sharedDefaults?.bool(forKey: "isMeditationBlockActive") ?? false
+    }
+
+    func saveAppBlockActive(_ active: Bool) {
+        sharedDefaults?.set(active, forKey: "isAppBlockActive")
+        sharedDefaults?.synchronize()
+    }
+
+    func loadAppBlockActive() -> Bool {
+        return sharedDefaults?.bool(forKey: "isAppBlockActive") ?? false
+    }
+
+    func saveMeditationCompleted(_ completed: Bool, forDate date: Date = Date()) {
+        let key = meditationCompletedKey(for: date)
+        sharedDefaults?.set(completed, forKey: key)
+        sharedDefaults?.synchronize()
+    }
+
+    func loadMeditationCompleted(forDate date: Date = Date()) -> Bool {
+        let key = meditationCompletedKey(for: date)
+        return sharedDefaults?.bool(forKey: key) ?? false
+    }
+
+    private func meditationCompletedKey(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "meditationCompleted_\(formatter.string(from: date))"
+    }
+
+    func saveMeditationTimes(_ times: [MeditationTime]) {
+        if let encoded = try? JSONEncoder().encode(times) {
+            sharedDefaults?.set(encoded, forKey: "meditationTimes")
+            sharedDefaults?.synchronize()
+        }
+    }
+
+    func loadMeditationTimes() -> [MeditationTime] {
+        if let data = sharedDefaults?.data(forKey: "meditationTimes"),
+           let decoded = try? JSONDecoder().decode([MeditationTime].self, from: data) {
+            return decoded
+        }
+        return []
+    }
+
+    /// Check if an app token is in the meditation blocked list
+    func isAppInMeditationBlock(_ tokenData: Data) -> Bool {
+        let tokens = loadMeditationBlockedTokens()
+        return tokens.contains(tokenData)
+    }
+
+    /// Per-time completion tracking: "06:00", "08:00", etc.
+    func saveMeditationCompletedForTime(_ timeKey: String, date: Date = Date()) {
+        let key = meditationTimeCompletedKey(timeKey: timeKey, date: date)
+        sharedDefaults?.set(true, forKey: key)
+        sharedDefaults?.synchronize()
+    }
+
+    func loadMeditationCompletedForTime(_ timeKey: String, date: Date = Date()) -> Bool {
+        let key = meditationTimeCompletedKey(timeKey: timeKey, date: date)
+        return sharedDefaults?.bool(forKey: key) ?? false
+    }
+
+    private func meditationTimeCompletedKey(timeKey: String, date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "meditationDone_\(formatter.string(from: date))_\(timeKey)"
+    }
+
+    /// Save which time slot is currently active (so intervention knows what to mark complete)
+    func saveActiveMeditationTimeKey(_ timeKey: String?) {
+        sharedDefaults?.set(timeKey, forKey: "activeMeditationTimeKey")
+        sharedDefaults?.synchronize()
+    }
+
+    func loadActiveMeditationTimeKey() -> String? {
+        return sharedDefaults?.string(forKey: "activeMeditationTimeKey")
+    }
+}
+
+// MARK: - Meditation Time Model
+
+struct MeditationTime: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var name: String
+    var hour: Int
+    var minute: Int
+    var days: Set<Int> // 1 = Sunday, 2 = Monday, ... 7 = Saturday
+
+    var formattedTime: String {
+        let period = hour >= 12 ? "PM" : "AM"
+        let displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour)
+        return String(format: "%d:%02d %@", displayHour, minute, period)
+    }
+
+    var formattedDays: String {
+        let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        if days.count == 7 { return "Every day" }
+        if days == Set([2, 3, 4, 5, 6]) { return "Weekdays" }
+        if days == Set([1, 7]) { return "Weekends" }
+        let sorted = days.sorted()
+        return sorted.map { dayNames[$0 - 1] }.joined(separator: ", ")
+    }
 }
 
 // MARK: - Mood Entry Model

@@ -49,6 +49,7 @@ struct HomeView: View {
     }
 
     var body: some View {
+        NavigationStack {
         ZStack {
             Color(hex: "F8F8F8").ignoresSafeArea()
 
@@ -77,7 +78,7 @@ struct HomeView: View {
                                     .stroke(currentStreak > 0 ? Color(hex: "FF6B35").opacity(0.2) : Color(hex: "E8E8E8"), lineWidth: 1)
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(HapticButtonStyle())
 
                         Spacer()
 
@@ -88,14 +89,14 @@ struct HomeView: View {
 
                         Spacer()
 
-                        // Invisible spacer to balance the streak badge width
-                        HStack(spacing: 5) {
-                            Text("🔥").font(.system(size: 18))
-                            Text("\(currentStreak)").font(.system(size: 16, weight: .bold))
+                        // Settings gear icon
+                        NavigationLink(destination: SettingsView()) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(Color(hex: "999999"))
+                                .frame(width: 36, height: 36)
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .opacity(0)
+                        .buttonStyle(HapticButtonStyle())
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -156,11 +157,6 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                         .padding(.bottom, 16)
                     }
-
-                    // App Intentions Section (Per-App)
-                    AppIntentionsSection()
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 16)
 
                     // Daily Challenges Card
                     VStack(alignment: .leading, spacing: 16) {
@@ -231,7 +227,7 @@ struct HomeView: View {
                                         .stroke(Color(hex: "E2E8F0"), style: StrokeStyle(lineWidth: 1, dash: [6, 4]))
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HapticButtonStyle())
                         }
                     }
                     .padding(20)
@@ -296,6 +292,8 @@ struct HomeView: View {
             checkDailyReset()
             loadActiveBlockingSessions()
             updateDisciplineChallengeBonus()
+        }
+        .navigationBarHidden(true)
         }
     }
 
@@ -658,7 +656,7 @@ struct ChallengeChecklistItem: View {
                 .background(Color(hex: "F8F8F8"))
                 .cornerRadius(12)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HapticButtonStyle())
             .offset(x: offset)
             .simultaneousGesture(
                 onDelete != nil ?
@@ -784,7 +782,7 @@ struct AddChallengeSheet: View {
                                                                 .stroke(selectedEmoji == emoji ? Color(hex: "1A1A1A") : Color.clear, lineWidth: 2)
                                                         )
                                                 }
-                                                .buttonStyle(.plain)
+                                                .buttonStyle(HapticButtonStyle())
                                             }
                                         }
                                     }
@@ -1125,7 +1123,7 @@ struct ActiveBlockingSessionCard: View {
                         .frame(width: 16, height: 16)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HapticButtonStyle())
         }
         .padding(16)
         .background(Color.white)

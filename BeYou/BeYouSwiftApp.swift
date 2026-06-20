@@ -122,6 +122,10 @@ struct BeYouSwiftApp: App {
             AnalyticsManager.shared.trackPaywallShown(placement: "subscription_expired")
         }
         handler.onDismiss { _, result in
+            AnalyticsManager.shared.trackPaywallDismissed(
+                placement: "subscription_expired",
+                result: paywallResultName(result)
+            )
             switch result {
             case .purchased, .restored:
                 showExpiredPaywall = false
@@ -162,10 +166,14 @@ struct BeYouSwiftApp: App {
     }
 
     private func reauthorizeFamilyControls() async {
-        // Only re-authorize if user has already completed onboarding + setup
-        // New users will get prompted during the normal onboarding flow instead
-        guard SharedDataManager.shared.loadHasCompletedSetup() else {
-            print("📱 APP: Skipping FamilyControls re-auth (onboarding not completed)")
+        // Screen Time access is only needed for App Block. Only (re)authorize when:
+        //  - App Block is enabled (the user opted in), or
+        //  - access was already granted (silent re-confirm — this never shows a prompt).
+        // This guarantees a first-time user is never prompted for Screen Time unless they
+        // actually turn on App Block.
+        let alreadyAuthorized = AuthorizationCenter.shared.authorizationStatus == .approved
+        guard AppBlockStore.isEnabled || alreadyAuthorized else {
+            print("📱 APP: Skipping FamilyControls re-auth (App Block off and not yet authorized)")
             return
         }
         do {
@@ -192,11 +200,15 @@ struct BeYouSwiftApp: App {
     }
 
     private func scheduleRecurringNotifications() {
-        // Schedule midnight reset notification
-        NotificationManager.shared.scheduleMidnightReset()
+        // Cancel the old "Daily Reset / app limits reset" notification (no longer used) and
+        // remove any copy already scheduled on the device.
+        NotificationManager.shared.cancelNotification(identifier: .midnightReset)
 
         // Schedule daily reminder
         NotificationManager.shared.scheduleDailyReminder()
+
+        // 6pm "here are tomorrow's alarms" reminder
+        NotificationManager.shared.refreshTomorrowAlarmsReminder(alarms: AlarmScheduler.loadAlarms())
 
         // Schedule disconnect warnings if user has set them
         let disconnectSchedule = appState.onboardingData.disconnectSchedule

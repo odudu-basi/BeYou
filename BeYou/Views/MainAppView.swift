@@ -7,57 +7,168 @@ struct MainAppView: View {
     @EnvironmentObject var screenTimeManager: ScreenTimeManager
     @State private var selectedTab: MainTab = .home
     @State private var showInterventionSheet = false
+    @State private var showWriteReviewSheet = false
+    @State private var showAlarmMission = false
+    @State private var alertingAlarmId: UUID?
+    @AppStorage("completedInterventionCount") private var completedInterventionCount: Int = 0
+    @AppStorage("hasWrittenReview") private var hasWrittenReview: Bool = false
+    @AppStorage("nextWriteReviewAt") private var nextWriteReviewAt: Int = 3
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        ZStack {
-            // Content
-            Group {
-                switch selectedTab {
-                case .home:
-                    HomeView()
-                case .motivation:
-                    MotivationView()
-                case .settings:
-                    SettingsView()
-                }
-            }
+        // Native TabView → Apple's standard tab bar (Liquid Glass on iOS 26).
+        TabView(selection: $selectedTab) {
+            AlarmHomeView()
+                .tag(MainTab.home)
+                .tabItem { Label(MainTab.home.label, systemImage: MainTab.home.sfSymbol) }
 
-            // Custom Tab Bar
-            VStack {
-                Spacer()
-                CustomTabBar(selectedTab: $selectedTab)
-            }
+            AlarmsView()
+                .tag(MainTab.alarms)
+                .tabItem { Label(MainTab.alarms.label, systemImage: MainTab.alarms.sfSymbol) }
+
+            InsightsView()
+                .tag(MainTab.insights)
+                .tabItem { Label(MainTab.insights.label, systemImage: MainTab.insights.sfSymbol) }
+
+            SettingsView()
+                .tag(MainTab.settings)
+                .tabItem { Label(MainTab.settings.label, systemImage: MainTab.settings.sfSymbol) }
         }
-        .ignoresSafeArea(.keyboard)
         .sheet(isPresented: $showInterventionSheet) {
             InterventionSheet()
         }
+        .sheet(isPresented: $showWriteReviewSheet) {
+            WriteReviewSheet(
+                onWriteReview: {
+                    ReviewPromptManager.markWritten()
+                    hasWrittenReview = true
+                    showWriteReviewSheet = false
+                    AnalyticsManager.shared.track("Write Review Tapped")
+                    if let url = URL(string: "https://apps.apple.com/app/id6760232059?action=write-review") {
+                        UIApplication.shared.open(url)
+                    }
+                },
+                onDismiss: {
+                    ReviewPromptManager.clearPending()
+                    showWriteReviewSheet = false
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showAlarmMission) {
+            if let alarmId = alertingAlarmId {
+                let raw = UserDefaults.standard.string(forKey: "alarmMission_\(alarmId.uuidString)") ?? "Item Search"
+                let missions = raw.split(separator: "|").map(String.init)
+                let itemsData = UserDefaults.standard.stringArray(forKey: "alarmItems_\(alarmId.uuidString)") ?? []
+                AlarmDismissFlowView(
+                    alarmId: alarmId,
+                    alarmName: "Alarm",
+                    missions: missions.isEmpty ? ["Item Search"] : missions,
+                    selectedItems: itemsData,
+                    onDismissed: {
+                        showAlarmMission = false
+                        alertingAlarmId = nil
+                    }
+                )
+            }
+        }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
+                NotificationManager.shared.clearBadge()   // reset the app-icon badge on open
+                // Sweep completed/expired leftovers FIRST, so a stray can't present a mission.
+                if #available(iOS 26.1, *) { AlarmScheduler.reconcile() }
                 checkForPendingIntervention()
+                checkForWriteReviewPrompt()
+                checkForAlertingAlarm()
+                checkForPendingMission()
+                // Returning to a mission in progress → resume the loop (AVAudioPlayer stops
+                // when backgrounded).
+                if showAlarmMission, let id = alertingAlarmId {
+                    MissionAlarmAudio.shared.start(sound: soundForAlarm(id)) {
+                        if #available(iOS 26.1, *) { AlarmService.shared.stopAlarm(id: id) }
+                    }
+                }
+            }
+            // NOTE: we deliberately do NOT cancel/re-arm backups around backgrounding. The
+            // backup burst stays armed the whole time so a force-quit still re-rings; any
+            // backup that fires while the mission is open is auto-dismissed by the guard.
+        }
+        .onChange(of: showAlarmMission) { showing in
+            if showing {
+                // Play the alarm on a continuous loop for the whole mission (gapless). The system
+                // alarm is silenced ONLY once the loop is confirmed playing (in onStarted), so a
+                // failed audio-session start can never leave us in silence — the alarm keeps
+                // ringing until the loop takes over. Backups stay armed for kill-safety.
+                if let id = alertingAlarmId {
+                    MissionAlarmAudio.shared.start(sound: soundForAlarm(id)) {
+                        if #available(iOS 26.1, *) { AlarmService.shared.stopAlarm(id: id) }
+                    }
+                }
+
+                // Alarm fired → engage the App Block (if armed). It stays until the user stops it
+                // via the unblock flow — completing the mission does NOT lift it.
+                if AppBlockStore.isEnabled && !AppBlockStore.isActive {
+                    screenTimeManager.activateAppBlock()
+                }
+            } else {
+                MissionAlarmAudio.shared.stop()
+                // Mission closed → clear any leftover "pending mission" flag (set when a backup
+                // was tapped mid-mission) so it can't silently re-open the mission later.
+                UserDefaults.standard.removeObject(forKey: "pendingMissionAlarmID")
+
+                // If the just-completed alarm queued a review prompt, show it now.
+                if ReviewPromptManager.isPending && !hasWrittenReview {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        showWriteReviewSheet = true
+                    }
+                }
             }
         }
         .onChange(of: appState.isInterventionActive) { isActive in
             print("🔄 MAIN: onChange triggered - isInterventionActive changed to: \(isActive)")
             print("🔄 MAIN: pendingAppToUnlock: \(appState.pendingAppToUnlock ?? "nil")")
 
-            // Auto-show intervention sheet when intervention becomes active
-            // Guard: don't show if already showing (prevents double trigger from Darwin + push)
             let shouldShow = isActive && appState.pendingAppToUnlock != nil && !showInterventionSheet
             print("🔄 MAIN: Should show sheet: \(shouldShow) (already showing: \(showInterventionSheet))")
 
             if shouldShow {
-                print("🔄 MAIN: ✅ Showing intervention sheet via onChange!")
+                print("🔄 MAIN: ✅ Showing intervention sheet!")
                 showInterventionSheet = true
             } else {
                 print("🔄 MAIN: ❌ NOT showing sheet via onChange")
             }
         }
         .onAppear {
+            NotificationManager.shared.clearBadge()   // clear any stale app-icon badge
+            retireMeditationIfNeeded()   // remove any leftover meditation block (feature retired)
+            // One-time: flush pre-existing ghost alarms from the old system, then rebuild.
+            if #available(iOS 26.1, *) { AlarmScheduler.migrateWipeIfNeeded() }
+            // Sweep completed/expired leftovers on launch before anything can present.
+            if #available(iOS 26.1, *) { AlarmScheduler.reconcile() }
             checkForPendingIntervention()
             setupNotificationListener()
+            checkForAlertingAlarm()
+            checkForPendingMission()
+
+            // Show the mission when an alarm starts ringing while the app is already open.
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("AlarmDidStartAlerting"),
+                object: nil,
+                queue: .main
+            ) { _ in
+                checkForAlertingAlarm()
+            }
         }
+    }
+
+    /// One-time cleanup: the Meditation feature was retired, so lift any leftover meditation
+    /// block, stop its background schedules, and clear stored times — otherwise a user with
+    /// old meditation times could get blocked with no way to unblock.
+    private func retireMeditationIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: "didRetireMeditation") else { return }
+        screenTimeManager.deactivateMeditationBlock()
+        screenTimeManager.registerMeditationSchedules(times: [])
+        SharedDataManager.shared.saveMeditationTimes([])
+        UserDefaults.standard.set(true, forKey: "didRetireMeditation")
     }
 
     private func checkForPendingIntervention() {
@@ -81,9 +192,7 @@ struct MainAppView: View {
         // Check if there's a pending intervention from the shield
         // Guard: don't show if already showing (prevents double trigger)
         if isInterventionActive && pendingApp != nil && !showInterventionSheet {
-            print("🔍 MAIN: Intervention detected! Showing sheet if app is active...")
-
-            // Show sheet if app is already active (user is in the app)
+            print("🔍 MAIN: Intervention detected! Showing sheet...")
             showInterventionSheet = true
             print("🔍 MAIN: Sheet display triggered")
         } else {
@@ -131,6 +240,92 @@ struct MainAppView: View {
             }
         }
     }
+
+    private func checkForWriteReviewPrompt() {
+        guard !hasWrittenReview,
+              !showInterventionSheet,
+              !showAlarmMission,
+              ReviewPromptManager.isPending else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            showWriteReviewSheet = true
+        }
+    }
+
+    private func checkForAlertingAlarm() {
+        guard #available(iOS 26.1, *) else { return }
+        let service = AlarmService.shared
+        guard let alarmId = service.currentAlertingAlarmId else { return }
+
+        // A mission is already on screen. If the continuous loop is playing, silence this
+        // freshly-fired backup so it doesn't double up; if the loop somehow isn't playing,
+        // leave it ringing (never create silence). Either way, don't re-present.
+        if showAlarmMission {
+            if MissionAlarmAudio.shared.isPlaying { service.stopAlarm(id: alarmId) }
+            return
+        }
+
+        // Occurrence already completed → this is a stale leftover backup. Dismiss it and
+        // do NOT show the mission again (the double-mission guard — the one safety net we keep).
+        if isCompletedOccurrence(for: alarmId.uuidString) {
+            logSessionResolution("DISMISS(alerting)", alarmId.uuidString)
+            service.stopAlarm(id: alarmId)
+            return
+        }
+
+        logSessionResolution("PRESENT(alerting)", alarmId.uuidString)
+        alertingAlarmId = alarmId
+        showAlarmMission = true
+    }
+
+    /// Presents the mission when the user used "slide to stop" — which routes through the
+    /// app (StopAlarmIntent) and flags the mission as still owed, instead of dismissing it.
+    private func checkForPendingMission() {
+        // Already in a mission — ignore for now.
+        guard !showAlarmMission else { return }
+        guard let idStr = UserDefaults.standard.string(forKey: "pendingMissionAlarmID"),
+              !idStr.isEmpty,
+              let alarmId = UUID(uuidString: idStr) else { return }
+
+        // Consume the flag so it doesn't re-trigger.
+        UserDefaults.standard.removeObject(forKey: "pendingMissionAlarmID")
+
+        // Stale leftover (mission already done for this occurrence) → dismiss, don't present.
+        if isCompletedOccurrence(for: idStr) {
+            logSessionResolution("DISMISS(pending)", idStr)
+            if #available(iOS 26.1, *) { AlarmService.shared.stopAlarm(id: alarmId) }
+            return
+        }
+
+        logSessionResolution("PRESENT(pending)", idStr)
+        alertingAlarmId = alarmId
+        showAlarmMission = true
+    }
+
+    /// Diagnostic: logs which session a fired/tapped alarm resolves to and whether it's
+    /// completed — so a stray that still presents the mission tells us exactly why the guard
+    /// missed it (no session vs. wrong/incomplete session).
+    private func logSessionResolution(_ tag: String, _ alarmKitId: String) {
+        let sid = WakeSessionStore.map()[alarmKitId] ?? "nil"
+        let session = WakeSessionStore.session(forAlarmKitID: alarmKitId)
+        let completed = session?.completedAt.map { "\($0)" } ?? "nil"
+        let owningAlarm = session?.alarmId ?? "nil"
+        print("🔔 SESSIONLOG \(tag): alarmKitId=\(alarmKitId) → session=\(sid) completedAt=\(completed) ownerAlarmId=\(owningAlarm)")
+    }
+
+    /// Whether the alarm's session (shared by its primary + all backups) is already completed.
+    /// Any leftover backup that fires resolves to the same session → self-dismisses → no loop.
+    private func isCompletedOccurrence(for alarmKitId: String) -> Bool {
+        WakeSessionStore.isCompleted(alarmKitID: alarmKitId)
+    }
+
+    /// The user-chosen sound for the alarm that's firing (resolving a backup back to its
+    /// primary), used to drive the continuous mission loop. Falls back to "Default".
+    private func soundForAlarm(_ alarmId: UUID) -> String {
+        let primaryId = UserDefaults.standard.string(forKey: "alarmBackupPrimary_\(alarmId.uuidString)") ?? alarmId.uuidString
+        return AlarmScheduler.loadAlarms().first { $0.id.uuidString == primaryId }?.sound ?? "Default"
+    }
+
 
     private func setupNotificationListener() {
         print("🎧 MAIN: Setting up notification listener for ShowInterventionSheet")

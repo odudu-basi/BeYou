@@ -29,10 +29,16 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         let activityString = "\(activity)"
         let scheduleKey = extractScheduleKey(from: activityString)
 
-        // Skip unlock re-block activities — these use a full-day schedule just to
-        // host DeviceActivityEvents. We don't want to treat them as disconnect schedules.
+        // Skip unlock re-block activities
         if scheduleKey.hasPrefix("unlock_") {
             print("🔔 MONITOR: Ignoring intervalDidStart for unlock activity: \(scheduleKey)")
+            return
+        }
+
+        // Handle meditation schedule activation
+        if scheduleKey.hasPrefix("meditation_") {
+            print("🧘 MONITOR: Meditation schedule started: \(scheduleKey)")
+            activateMeditationBlock(scheduleKey: scheduleKey)
             return
         }
 
@@ -66,10 +72,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         let activityString = "\(activity)"
         let scheduleKey = extractScheduleKey(from: activityString)
 
-        // Skip unlock activities — re-blocking is handled by eventDidReachThreshold,
-        // not intervalDidEnd. The full-day schedule is just a container for the event.
         if scheduleKey.hasPrefix("unlock_") {
             print("🔔 MONITOR: Ignoring intervalDidEnd for unlock activity: \(scheduleKey)")
+            return
+        }
+
+        // Meditation schedules don't have an end — they stay until completed
+        if scheduleKey.hasPrefix("meditation_") {
+            print("🧘 MONITOR: Ignoring intervalDidEnd for meditation: \(scheduleKey)")
             return
         }
 
@@ -232,6 +242,75 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             body: "You're getting close to your daily goal. Stay mindful! 🎯",
             identifier: "limit_warning_\(Date().timeIntervalSince1970)"
         )
+    }
+
+    // MARK: - Meditation Blocking
+
+    private let meditationStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("meditation"))
+
+    private func activateMeditationBlock(scheduleKey: String) {
+        // Extract the meditation time from the schedule key
+        let meditationTimes = sharedData.loadMeditationTimes()
+        var matchedTime: MeditationTime?
+
+        for time in meditationTimes {
+            let prefix = "meditation_\(time.id.uuidString)"
+            if scheduleKey.hasPrefix(prefix) {
+                matchedTime = time
+                break
+            }
+        }
+
+        guard let time = matchedTime else {
+            print("🧘 MONITOR: Could not find meditation time for schedule: \(scheduleKey)")
+            return
+        }
+
+        let timeKey = String(format: "%02d:%02d", time.hour, time.minute)
+
+        // Check if current time is actually close to the scheduled time (within 5 minutes)
+        // This prevents false triggers when a schedule is registered mid-day
+        let now = Date()
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: now)
+        let currentMinute = calendar.component(.minute, from: now)
+        let currentTotal = currentHour * 60 + currentMinute
+        let scheduledTotal = time.hour * 60 + time.minute
+        let diff = abs(currentTotal - scheduledTotal)
+        let wrappedDiff = min(diff, 1440 - diff)
+
+        if wrappedDiff > 3 {
+            print("🧘 MONITOR: Current time is \(wrappedDiff) min from scheduled \(timeKey) — false trigger, skipping")
+            return
+        }
+
+        // Check if this time slot was already completed today
+        if sharedData.loadMeditationCompletedForTime(timeKey) {
+            print("🧘 MONITOR: Meditation \(timeKey) already completed today — skipping block")
+            return
+        }
+
+        // Load meditation app selection from shared storage
+        guard let selectionData = sharedData.loadMeditationAppSelection(),
+              let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: selectionData) else {
+            print("🧘 MONITOR: No meditation app selection found")
+            return
+        }
+
+        if !selection.applicationTokens.isEmpty {
+            meditationStore.shield.applications = selection.applicationTokens
+        }
+        if !selection.categoryTokens.isEmpty {
+            meditationStore.shield.applicationCategories = .specific(selection.categoryTokens)
+        }
+
+        // Save active time key so the intervention knows which slot to mark complete
+        sharedData.saveActiveMeditationTimeKey(timeKey)
+
+        // Mark meditation block as active
+        sharedData.saveMeditationBlockActive(true)
+
+        print("🧘 MONITOR: Meditation block activated — \(selection.applicationTokens.count) apps blocked")
     }
 
     // MARK: - Helper Methods
@@ -613,6 +692,37 @@ class SharedDataManager {
         sharedDefaults?.synchronize()
         print("💾 MONITOR-SHARED: Cleared unlock state for \(storeKey) (checked \(keysToRemove.count) key variants)")
     }
+
+    // MARK: - Meditation
+
+    func loadMeditationAppSelection() -> Data? {
+        return sharedDefaults?.data(forKey: "meditationAppSelection")
+    }
+
+    func saveMeditationBlockActive(_ active: Bool) {
+        sharedDefaults?.set(active, forKey: "isMeditationBlockActive")
+        sharedDefaults?.synchronize()
+    }
+
+    func loadMeditationTimes() -> [MeditationTime] {
+        if let data = sharedDefaults?.data(forKey: "meditationTimes"),
+           let decoded = try? JSONDecoder().decode([MeditationTime].self, from: data) {
+            return decoded
+        }
+        return []
+    }
+
+    func loadMeditationCompletedForTime(_ timeKey: String) -> Bool {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let key = "meditationDone_\(formatter.string(from: Date()))_\(timeKey)"
+        return sharedDefaults?.bool(forKey: key) ?? false
+    }
+
+    func saveActiveMeditationTimeKey(_ timeKey: String?) {
+        sharedDefaults?.set(timeKey, forKey: "activeMeditationTimeKey")
+        sharedDefaults?.synchronize()
+    }
 }
 
 // MARK: - Data Models (Extension Version)
@@ -634,4 +744,12 @@ struct IndividualAppIntention: Codable {
 struct AppUsageStats {
     var breakthroughsToday: Int = 0
     var breakthroughsByApp: [String: Int] = [:]
+}
+
+struct MeditationTime: Identifiable, Codable, Equatable {
+    var id = UUID()
+    var name: String
+    var hour: Int
+    var minute: Int
+    var days: Set<Int>
 }

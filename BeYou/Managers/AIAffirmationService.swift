@@ -56,6 +56,52 @@ class AIAffirmationService {
             return nil
         }
     }
+    /// Generate meditation-focused affirmations based on topic and mood.
+    func generateMeditationAffirmations(
+        mood: String,
+        topic: String,
+        name: String?,
+        religion: String?,
+        count: Int = 3
+    ) async -> [String]? {
+        guard let url = URL(string: edgeFunctionURL) else { return nil }
+
+        var body: [String: Any] = [
+            "mood": mood,
+            "topic": topic,
+            "count": count,
+            "meditation": true
+        ]
+        if let name = name, !name.isEmpty { body["name"] = name }
+        if let religion = religion, !religion.isEmpty, religion != "general" { body["religion"] = religion }
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else { return nil }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = jsonData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(supabaseKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(supabaseKey, forHTTPHeaderField: "apikey")
+        request.timeoutInterval = timeoutSeconds
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                print("⚠️ AI MEDITATION: Server returned non-200")
+                return nil
+            }
+
+            let decoded = try JSONDecoder().decode(AIAffirmationResponse.self, from: data)
+            print("✅ AI MEDITATION: Generated \(decoded.affirmations.count) meditation affirmations")
+            return decoded.affirmations
+        } catch {
+            print("⚠️ AI MEDITATION: Failed — \(error.localizedDescription)")
+            return nil
+        }
+    }
 }
 
 private struct AIAffirmationResponse: Codable {

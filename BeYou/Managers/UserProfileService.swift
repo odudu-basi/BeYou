@@ -32,6 +32,21 @@ class UserProfileService {
         if let referral = data.referral, !referral.isEmpty { body["referral"] = referral }
         if let name = data.name, !name.isEmpty { body["name"] = name }
         if let gender = data.gender, !gender.isEmpty { body["gender"] = gender }
+
+        // New (alarm) onboarding answers.
+        if let v = data.morningPerson, !v.isEmpty { body["morning_person"] = v }
+        if let v = data.referralSource, !v.isEmpty { body["referred_from"] = v }
+        if let v = data.biggestObstacle, !v.isEmpty { body["biggest_obstacle"] = v }
+        if let v = data.usualWakeTime, !v.isEmpty { body["usual_wake_time"] = v }
+        if let v = data.idealWakeTime, !v.isEmpty { body["ideal_wake_time"] = v }
+        if let v = data.timeToFeelAwake, !v.isEmpty { body["time_to_feel_awake"] = v }
+        if let v = data.feelAfterWaking, !v.isEmpty { body["feel_after_waking"] = v }
+        if let v = data.trustFirstAlarm, !v.isEmpty { body["trust_first_alarm"] = v }
+        if let v = data.turnOffAlarm, !v.isEmpty { body["turn_off_alarm"] = v }
+        if let v = data.negotiateStayInBed, !v.isEmpty { body["negotiate_stay_in_bed"] = v }
+        if let v = data.alarmThought, !v.isEmpty { body["alarm_thought"] = v }
+        if let v = data.clearBrainFog, !v.isEmpty { body["clear_brain_fog"] = v }
+        if let v = data.alarmCount, !v.isEmpty { body["alarm_count"] = v }
         if let age = data.age { body["age"] = age }
         if !data.goals.isEmpty { body["goals"] = data.goals }
         if let currentScreenTime = data.currentScreenTime { body["current_screen_time"] = currentScreenTime }
@@ -74,6 +89,50 @@ class UserProfileService {
             }
         } catch {
             print("⚠️ PROFILE: Failed to save — \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Cancellation Feedback
+
+    /// Stores why a user is cancelling (reason + free-text) in Supabase. Fire-and-forget.
+    func submitCancellationFeedback(reason: String, details: String) {
+        Task {
+            await postCancellationFeedback(reason: reason, details: details)
+        }
+    }
+
+    private func postCancellationFeedback(reason: String, details: String) async {
+        guard let url = URL(string: "\(supabaseURL)/rest/v1/cancellation_feedback") else { return }
+
+        let appVersion = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "?"
+        let body: [String: Any] = [
+            "device_id": deviceId,
+            "reason": reason,
+            "details": details,
+            "app_version": appVersion
+        ]
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: body) else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = jsonData
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(supabaseKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(supabaseKey, forHTTPHeaderField: "apikey")
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode == 201 || httpResponse.statusCode == 200 {
+                    print("✅ CANCEL: Feedback saved to Supabase")
+                } else {
+                    print("⚠️ CANCEL: Supabase returned \(httpResponse.statusCode)")
+                }
+            }
+        } catch {
+            print("⚠️ CANCEL: Failed to save feedback — \(error.localizedDescription)")
         }
     }
 

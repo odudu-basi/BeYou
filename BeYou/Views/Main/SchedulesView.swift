@@ -356,7 +356,7 @@ struct SchedulesView: View {
             )
             .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HapticButtonStyle())
         .contextMenu {
             Button(role: .destructive) {
                 deleteSession(session)
@@ -769,7 +769,7 @@ struct NewScheduleSessionSheet: View {
                                         .stroke(Color(hex: "E0E0E0"), lineWidth: 1)
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HapticButtonStyle())
 
                             Text("Choose which apps will be blocked during this session")
                                 .font(.system(size: 13))
@@ -1075,7 +1075,7 @@ struct EditScheduleSessionSheet: View {
                                         .stroke(Color(hex: "E0E0E0"), lineWidth: 1)
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(HapticButtonStyle())
 
                             Text("Choose which apps will be blocked during this session")
                                 .font(.system(size: 13))

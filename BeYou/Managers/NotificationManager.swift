@@ -21,6 +21,8 @@ class NotificationManager: ObservableObject {
         case dailyReminder = "daily_reminder"
         case affirmation = "affirmation"
         case streakWarning = "streak_warning"
+        case tomorrowAlarms = "tomorrow_alarms"
+        case dailyEncouragement = "daily_encouragement"
     }
 
     private init() {
@@ -30,10 +32,14 @@ class NotificationManager: ObservableObject {
     // MARK: - Authorization
 
     func requestAuthorization() async -> Bool {
+        let wasUndetermined = await notificationCenter.notificationSettings().authorizationStatus == .notDetermined
         do {
             let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
             await MainActor.run {
                 isAuthorized = granted
+                if wasUndetermined {
+                    AnalyticsManager.shared.trackPermissionResult(type: "notifications", granted: granted)
+                }
             }
             return granted
         } catch {
@@ -69,7 +75,6 @@ class NotificationManager: ObservableObject {
         content.title = "\(type) Focus Starts Soon"
         content.body = "Your \(type) disconnect time starts in 10 minutes"
         content.sound = .default
-        content.badge = 1
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: warningComponents, repeats: true)
         let identifier = "\(NotificationIdentifier.disconnectWarning.rawValue)_\(type.lowercased().replacingOccurrences(of: " ", with: "_"))"
@@ -101,7 +106,6 @@ class NotificationManager: ObservableObject {
         }
 
         content.sound = .default
-        content.badge = NSNumber(value: currentOpens)
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(
@@ -193,31 +197,6 @@ class NotificationManager: ObservableObject {
     }
 
     /// Midnight reset notification
-    func scheduleMidnightReset() {
-        guard isAuthorized else { return }
-
-        let content = UNMutableNotificationContent()
-        content.title = "Daily Reset"
-        content.body = "Your app limits have been reset. Make today count!"
-        content.sound = .default
-
-        var dateComponents = DateComponents()
-        dateComponents.hour = 0
-        dateComponents.minute = 0
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
-        let request = UNNotificationRequest(
-            identifier: NotificationIdentifier.midnightReset.rawValue,
-            content: content,
-            trigger: trigger
-        )
-
-        notificationCenter.add(request) { error in
-            if let error = error {
-                print("Failed to schedule midnight reset: \(error)")
-            }
-        }
-    }
 
     /// Discipline score milestone notification
     func showDisciplineScoreUpdate(score: Int, change: Int) {
@@ -282,6 +261,99 @@ class NotificationManager: ObservableObject {
             if let error = error {
                 print("Failed to schedule daily reminder: \(error)")
             }
+        }
+    }
+
+    // MARK: - Tomorrow's Alarms Reminder (6pm the day before)
+
+    /// Schedules a 6pm reminder listing the alarms set for the next day. Re-computed each
+    /// time it's called (alarm changes / app foreground) so the body stays accurate.
+    func refreshTomorrowAlarmsReminder(alarms: [AlarmItem]) {
+        notificationCenter.removePendingNotificationRequests(
+            withIdentifiers: [NotificationIdentifier.tomorrowAlarms.rawValue]
+        )
+
+        let cal = Calendar.current
+        let now = Date()
+        guard var sixPM = cal.date(bySettingHour: 18, minute: 0, second: 0, of: now) else { return }
+        if sixPM <= now {
+            sixPM = cal.date(byAdding: .day, value: 1, to: sixPM) ?? sixPM
+        }
+        // The "next day" relative to that 6pm.
+        guard let targetDay = cal.date(byAdding: .day, value: 1, to: sixPM) else { return }
+
+        // Only the first (earliest) alarm of the next day.
+        let firstAlarm = alarms
+            .filter { $0.isEnabled && Self.alarm($0, fires: targetDay) }
+            .sorted { ($0.hour, $0.minute) < ($1.hour, $1.minute) }
+            .first
+
+        guard let firstAlarm else { return } // nothing tomorrow → no reminder
+
+        let content = UNMutableNotificationContent()
+        content.title = "Tomorrow's wake-up 🌙"
+        content.body = "Your first alarm is at \(firstAlarm.formattedTime). Get some rest."
+        content.sound = .default
+
+        let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: sixPM)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: NotificationIdentifier.tomorrowAlarms.rawValue,
+            content: content,
+            trigger: trigger
+        )
+        notificationCenter.add(request) { error in
+            if let error = error { print("Failed to schedule tomorrow reminder: \(error)") }
+        }
+    }
+
+    /// Whether an alarm will fire on the given calendar day.
+    private static func alarm(_ alarm: AlarmItem, fires date: Date) -> Bool {
+        let cal = Calendar.current
+        let isOneTime = !alarm.isScheduled || alarm.repeatDays.isEmpty
+        if isOneTime {
+            guard let fire = AlarmScheduler.nextFireDate(for: alarm) else { return false }
+            return cal.isDate(fire, inSameDayAs: date)
+        } else {
+            let weekday = cal.component(.weekday, from: date) // 1=Sun...7=Sat
+            let index = (weekday + 5) % 7                     // -> Mon=0...Sun=6
+            return alarm.repeatDays.contains(index)
+        }
+    }
+
+    // MARK: - Daily Encouragement (after the first mission of the day)
+
+    private let encouragements = [
+        "Have an amazing day — be the best version of yourself ✨",
+        "You showed up for yourself today. Now go be great 💪",
+        "Day started right. Make it yours 🌟",
+        "You're already winning today. Keep that energy 🔥",
+        "Be present, be kind, be you. Have a great day ☀️"
+    ]
+
+    /// Sends one positive message after the first completed mission of the day. Guarded so
+    /// it fires at most once per calendar day.
+    func sendDailyEncouragement() {
+        let key = "lastEncouragementDay"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let today = formatter.string(from: Date())
+        guard UserDefaults.standard.string(forKey: key) != today else { return }
+        UserDefaults.standard.set(today, forKey: key)
+
+        let content = UNMutableNotificationContent()
+        content.title = "Good morning ☀️"
+        content.body = encouragements.randomElement() ?? "Have a great day — be the best version of yourself ✨"
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "\(NotificationIdentifier.dailyEncouragement.rawValue)_\(today)",
+            content: content,
+            trigger: trigger
+        )
+        notificationCenter.add(request) { error in
+            if let error = error { print("Failed to schedule encouragement: \(error)") }
         }
     }
 
@@ -386,6 +458,43 @@ class NotificationManager: ObservableObject {
     func cancelAffirmationNotifications() {
         let identifiers = (0..<20).map { "\(NotificationIdentifier.affirmation.rawValue)_\($0)" }
         notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
+    // MARK: - Meditation Notifications
+
+    func scheduleMeditationNotifications(times: [MeditationTime]) {
+        // Remove old meditation notifications
+        notificationCenter.getPendingNotificationRequests { requests in
+            let meditationIds = requests.filter { $0.identifier.hasPrefix("meditation_") }.map { $0.identifier }
+            self.notificationCenter.removePendingNotificationRequests(withIdentifiers: meditationIds)
+        }
+
+        for time in times {
+            for day in time.days {
+                var dateComponents = DateComponents()
+                dateComponents.hour = time.hour
+                dateComponents.minute = time.minute
+                dateComponents.weekday = day
+
+                let content = UNMutableNotificationContent()
+                content.title = "Time to Meditate"
+                content.body = "It's time for \(time.name). Take a moment to breathe and reflect."
+                content.sound = .default
+
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                let identifier = "meditation_\(time.id.uuidString)_\(day)"
+
+                let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+                notificationCenter.add(request)
+            }
+        }
+    }
+
+    func cancelMeditationNotifications() {
+        notificationCenter.getPendingNotificationRequests { requests in
+            let meditationIds = requests.filter { $0.identifier.hasPrefix("meditation_") }.map { $0.identifier }
+            self.notificationCenter.removePendingNotificationRequests(withIdentifiers: meditationIds)
+        }
     }
 
     // MARK: - Cancel Notifications

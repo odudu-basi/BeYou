@@ -6,6 +6,12 @@
 	<true/>
 	<key>NSFamilyControlsUsageDescription</key>
 	<string>BeYou needs access to Screen Time to help you manage app usage and build healthy habits</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>BeYou uses alarms to wake you up and help you start your day with positive affirmations</string>
+	<key>NSCameraUsageDescription</key>
+	<string>BeYou needs camera access to complete your morning wake-up missions</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>CFBundleIcons</key>
 	<dict>
 		<key>CFBundlePrimaryIcon</key>

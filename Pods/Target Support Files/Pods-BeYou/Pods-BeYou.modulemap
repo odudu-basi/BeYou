@@ -1,0 +1,6 @@
+framework module Pods_BeYou {
+  umbrella header "Pods-BeYou-umbrella.h"
+
+  export *
+  module * { export * }
+}

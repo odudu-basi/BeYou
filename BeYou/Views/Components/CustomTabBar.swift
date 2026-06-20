@@ -2,17 +2,15 @@ import SwiftUI
 
 enum MainTab: String, CaseIterable {
     case home
-    case motivation
+    case alarms
+    case insights
     case settings
-
-    static var visibleTabs: [MainTab] {
-        [.home, .motivation, .settings]
-    }
 
     var label: String {
         switch self {
         case .home: return "Home"
-        case .motivation: return "BeYou"
+        case .alarms: return "Alarms"
+        case .insights: return "Insights"
         case .settings: return "Settings"
         }
     }
@@ -20,7 +18,8 @@ enum MainTab: String, CaseIterable {
     var sfSymbol: String {
         switch self {
         case .home: return "house.fill"
-        case .motivation: return "" // Uses logo image instead
+        case .alarms: return "alarm.fill"
+        case .insights: return "chart.bar.fill"
         case .settings: return "gearshape.fill"
         }
     }
@@ -30,56 +29,26 @@ struct CustomTabBar: View {
     @Binding var selectedTab: MainTab
 
     var body: some View {
-        ZStack {
-            // Tab bar background
-            HStack(spacing: 0) {
-                ForEach(MainTab.visibleTabs, id: \.self) { tab in
-                    if tab == .motivation {
-                        // Empty space for the center logo
-                        Color.clear
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 60)
-                    } else {
-                        TabBarItem(
-                            tab: tab,
-                            isSelected: selectedTab == tab,
-                            action: { selectedTab = tab }
-                        )
-                    }
-                }
+        HStack(spacing: 0) {
+            ForEach([MainTab.home, .alarms, .insights, .settings], id: \.self) { tab in
+                TabBarItem(
+                    tab: tab,
+                    isSelected: selectedTab == tab,
+                    action: { selectedTab = tab }
+                )
             }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
-            .background(
-                .ultraThinMaterial,
-                in: RoundedRectangle(cornerRadius: 24)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 4)
-
-            // Center floating logo button
-            Button(action: { selectedTab = .motivation }) {
-                Image("be-you-icon")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 52, height: 52)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .rotationEffect(.degrees(-8))
-                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(
-                                selectedTab == .motivation ? Color(hex: "1A1A1A") : Color.white.opacity(0.6),
-                                lineWidth: selectedTab == .motivation ? 2.5 : 1.5
-                            )
-                            .rotationEffect(.degrees(-8))
-                    )
-            }
-            .offset(y: -22)
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(cornerRadius: 24)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 4)
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
     }

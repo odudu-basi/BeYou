@@ -22,6 +22,22 @@
 		F00E077B2F5EA50500DBA69D /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E077A2F5EA50400DBA69D /* UserNotifications.framework */; };
 		F00E07AB2F5F252400DBA69D /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F00E07442F5E661700DBA69D /* ManagedSettings.framework */; };
 		F00E07B32F5F252400DBA69D /* BeYouShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00E07AA2F5F252400DBA69D /* BeYouShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F01C1D692FD7D3FB00C4924E /* loud buzzer.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D642FD7D3FB00C4924E /* loud buzzer.caf */; };
+		F01C1D6A2FD7D3FB00C4924E /* Melodic.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D652FD7D3FB00C4924E /* Melodic.caf */; };
+		F01C1D6B2FD7D3FB00C4924E /* Animals in nature.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D602FD7D3FB00C4924E /* Animals in nature.caf */; };
+		F01C1D6C2FD7D3FB00C4924E /* kalimba.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D622FD7D3FB00C4924E /* kalimba.caf */; };
+		F01C1D6D2FD7D3FB00C4924E /* Fighter jet.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D612FD7D3FB00C4924E /* Fighter jet.caf */; };
+		F01C1D6E2FD7D3FB00C4924E /* Lofi Piano.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D632FD7D3FB00C4924E /* Lofi Piano.caf */; };
+		F01C1D6F2FD7D3FB00C4924E /* Raid.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D662FD7D3FB00C4924E /* Raid.caf */; };
+		F01C1D712FD7D3FB00C4924E /* rooster.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D672FD7D3FB00C4924E /* rooster.caf */; };
+		F01C1D752FD7D5DA00C4924E /* Navy loud.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D742FD7D5DA00C4924E /* Navy loud.caf */; };
+		F01C1D762FD7D5DA00C4924E /* Jazz.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D722FD7D5DA00C4924E /* Jazz.caf */; };
+		F01C1D772FD7D5DA00C4924E /* Loud bell.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D732FD7D5DA00C4924E /* Loud bell.caf */; };
+		F01C1D792FD7D63D00C4924E /* Loud impact alarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D782FD7D63D00C4924E /* Loud impact alarm.caf */; };
+		F01C1D7D2FD7DE4100C4924E /* Guitar.caf in Resources */ = {isa = PBXBuildFile; fileRef = F01C1D7C2FD7DE4100C4924E /* Guitar.caf */; };
+		F0669AD32FD4046B0072B669 /* alarm_zen.caf in Resources */ = {isa = PBXBuildFile; fileRef = F0669AD22FD401A20072B669 /* alarm_zen.caf */; };
+		F0669AD52FD404750072B669 /* alarm_beeping.caf in Resources */ = {isa = PBXBuildFile; fileRef = F0669AD02FD401A20072B669 /* alarm_beeping.caf */; };
+		F0669AD62FD4047A0072B669 /* alarm_annoying.caf in Resources */ = {isa = PBXBuildFile; fileRef = F0669ACF2FD401A20072B669 /* alarm_annoying.caf */; };
 		F075BCF52F664F4E000E1153 /* Mixpanel in Frameworks */ = {isa = PBXBuildFile; productRef = F075BCF42F664F4E000E1153 /* Mixpanel */; };
 		F075BCF82F6670E0000E1153 /* MixpanelSessionReplay in Frameworks */ = {isa = PBXBuildFile; productRef = F075BCF72F6670E0000E1153 /* MixpanelSessionReplay */; };
 		F08123752F61115A0001263B /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = F08123742F61115A0001263B /* RevenueCat */; };
@@ -29,6 +45,7 @@
 		F08124532F6288FC0001263B /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08124522F6288FC0001263B /* WidgetKit.framework */; };
 		F08124552F6288FC0001263B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08124542F6288FC0001263B /* SwiftUI.framework */; };
 		F08124662F6288FE0001263B /* BeYouWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F0EC11542FD1430100169FF4 /* TikTokBusinessSDK in Frameworks */ = {isa = PBXBuildFile; productRef = F0EC11532FD1430100169FF4 /* TikTokBusinessSDK */; };
 		F0FCAC702F6CB83D006EDFD6 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */; };
 /* End PBXBuildFile section */
 
@@ -119,6 +136,22 @@
 		F00E074E2F5E669800DBA69D /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
 		F00E077A2F5EA50400DBA69D /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		F00E07AA2F5F252400DBA69D /* BeYouShieldAction.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeYouShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		F01C1D602FD7D3FB00C4924E /* Animals in nature.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = "Animals in nature.caf"; sourceTree = "<group>"; };
+		F01C1D612FD7D3FB00C4924E /* Fighter jet.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = "Fighter jet.caf"; sourceTree = "<group>"; };
+		F01C1D622FD7D3FB00C4924E /* kalimba.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = kalimba.caf; sourceTree = "<group>"; };
+		F01C1D632FD7D3FB00C4924E /* Lofi Piano.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = "Lofi Piano.caf"; sourceTree = "<group>"; };
+		F01C1D642FD7D3FB00C4924E /* loud buzzer.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = "loud buzzer.caf"; sourceTree = "<group>"; };
+		F01C1D652FD7D3FB00C4924E /* Melodic.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = Melodic.caf; sourceTree = "<group>"; };
+		F01C1D662FD7D3FB00C4924E /* Raid.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = Raid.caf; sourceTree = "<group>"; };
+		F01C1D672FD7D3FB00C4924E /* rooster.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = rooster.caf; sourceTree = "<group>"; };
+		F01C1D722FD7D5DA00C4924E /* Jazz.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = Jazz.caf; sourceTree = "<group>"; };
+		F01C1D732FD7D5DA00C4924E /* Loud bell.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = "Loud bell.caf"; sourceTree = "<group>"; };
+		F01C1D742FD7D5DA00C4924E /* Navy loud.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = "Navy loud.caf"; sourceTree = "<group>"; };
+		F01C1D782FD7D63D00C4924E /* Loud impact alarm.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = "Loud impact alarm.caf"; sourceTree = "<group>"; };
+		F01C1D7C2FD7DE4100C4924E /* Guitar.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = Guitar.caf; sourceTree = "<group>"; };
+		F0669ACF2FD401A20072B669 /* alarm_annoying.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = alarm_annoying.caf; sourceTree = "<group>"; };
+		F0669AD02FD401A20072B669 /* alarm_beeping.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = alarm_beeping.caf; sourceTree = "<group>"; };
+		F0669AD22FD401A20072B669 /* alarm_zen.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = alarm_zen.caf; sourceTree = "<group>"; };
 		F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeYouWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F08124522F6288FC0001263B /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		F08124542F6288FC0001263B /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -231,6 +264,7 @@
 				F00E077B2F5EA50500DBA69D /* UserNotifications.framework in Frameworks */,
 				F00E07792F5EA4FC00DBA69D /* DeviceActivity.framework in Frameworks */,
 				F075BCF52F664F4E000E1153 /* Mixpanel in Frameworks */,
+				F0EC11542FD1430100169FF4 /* TikTokBusinessSDK in Frameworks */,
 				F08123752F61115A0001263B /* RevenueCat in Frameworks */,
 				F075BCF82F6670E0000E1153 /* MixpanelSessionReplay in Frameworks */,
 				F0FCAC702F6CB83D006EDFD6 /* RevenueCatUI in Frameworks */,
@@ -307,6 +341,7 @@
 		F00E05C72F5E0C9A00DBA69D = {
 			isa = PBXGroup;
 			children = (
+				F0669ACE2FD4018C0072B669 /* Sounds */,
 				F00E05D22F5E0C9A00DBA69D /* BeYou */,
 				F00E05E02F5E0C9D00DBA69D /* BeYouTests */,
 				F00E05EA2F5E0C9D00DBA69D /* BeYouUITests */,
@@ -349,6 +384,29 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		F0669ACE2FD4018C0072B669 /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				F01C1D7C2FD7DE4100C4924E /* Guitar.caf */,
+				F01C1D782FD7D63D00C4924E /* Loud impact alarm.caf */,
+				F01C1D722FD7D5DA00C4924E /* Jazz.caf */,
+				F01C1D732FD7D5DA00C4924E /* Loud bell.caf */,
+				F01C1D742FD7D5DA00C4924E /* Navy loud.caf */,
+				F01C1D602FD7D3FB00C4924E /* Animals in nature.caf */,
+				F01C1D612FD7D3FB00C4924E /* Fighter jet.caf */,
+				F01C1D622FD7D3FB00C4924E /* kalimba.caf */,
+				F01C1D632FD7D3FB00C4924E /* Lofi Piano.caf */,
+				F01C1D642FD7D3FB00C4924E /* loud buzzer.caf */,
+				F01C1D652FD7D3FB00C4924E /* Melodic.caf */,
+				F01C1D662FD7D3FB00C4924E /* Raid.caf */,
+				F01C1D672FD7D3FB00C4924E /* rooster.caf */,
+				F0669ACF2FD401A20072B669 /* alarm_annoying.caf */,
+				F0669AD02FD401A20072B669 /* alarm_beeping.caf */,
+				F0669AD22FD401A20072B669 /* alarm_zen.caf */,
+			);
+			path = Sounds;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -382,6 +440,7 @@
 				F075BCF42F664F4E000E1153 /* Mixpanel */,
 				F075BCF72F6670E0000E1153 /* MixpanelSessionReplay */,
 				F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */,
+				F0EC11532FD1430100169FF4 /* TikTokBusinessSDK */,
 			);
 			productName = BeYou;
 			productReference = F00E05D02F5E0C9A00DBA69D /* BeYou.app */;
@@ -558,6 +617,7 @@
 				F08123762F6117790001263B /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
 				F075BCF32F664F4E000E1153 /* XCRemoteSwiftPackageReference "mixpanel-swift" */,
 				F075BCF62F6670E0000E1153 /* XCRemoteSwiftPackageReference "mixpanel-ios-session-replay-package" */,
+				F0EC11522FD1430100169FF4 /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F00E05D12F5E0C9A00DBA69D /* Products */;
@@ -580,6 +640,22 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F01C1D792FD7D63D00C4924E /* Loud impact alarm.caf in Resources */,
+				F01C1D692FD7D3FB00C4924E /* loud buzzer.caf in Resources */,
+				F01C1D6A2FD7D3FB00C4924E /* Melodic.caf in Resources */,
+				F01C1D6B2FD7D3FB00C4924E /* Animals in nature.caf in Resources */,
+				F01C1D6C2FD7D3FB00C4924E /* kalimba.caf in Resources */,
+				F01C1D6D2FD7D3FB00C4924E /* Fighter jet.caf in Resources */,
+				F01C1D752FD7D5DA00C4924E /* Navy loud.caf in Resources */,
+				F01C1D762FD7D5DA00C4924E /* Jazz.caf in Resources */,
+				F01C1D772FD7D5DA00C4924E /* Loud bell.caf in Resources */,
+				F01C1D6E2FD7D3FB00C4924E /* Lofi Piano.caf in Resources */,
+				F01C1D6F2FD7D3FB00C4924E /* Raid.caf in Resources */,
+				F01C1D712FD7D3FB00C4924E /* rooster.caf in Resources */,
+				F01C1D7D2FD7DE4100C4924E /* Guitar.caf in Resources */,
+				F0669AD32FD4046B0072B669 /* alarm_zen.caf in Resources */,
+				F0669AD52FD404750072B669 /* alarm_beeping.caf in Resources */,
+				F0669AD62FD4047A0072B669 /* alarm_annoying.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -888,7 +964,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BeYou/BeYou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -904,7 +980,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 2.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -944,7 +1020,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = BeYou/BeYou.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = 9U7ZFP4X2B;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -960,7 +1036,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 2.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -1424,6 +1500,14 @@
 				minimumVersion = 4.14.0;
 			};
 		};
+		F0EC11522FD1430100169FF4 /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tiktok/tiktok-business-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1446,6 +1530,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F08123762F6117790001263B /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
 			productName = SuperwallKit;
+		};
+		F0EC11532FD1430100169FF4 /* TikTokBusinessSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F0EC11522FD1430100169FF4 /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */;
+			productName = TikTokBusinessSDK;
 		};
 		F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */ = {
 			isa = XCSwiftPackageProductDependency;

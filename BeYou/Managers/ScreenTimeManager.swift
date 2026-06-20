@@ -296,6 +296,168 @@ class ScreenTimeManager: ObservableObject {
     // Re-blocking after unlock is handled entirely by DeviceActivityEvent in the monitor extension.
     // No in-memory timers or reapplyAllBlocks needed — the extension survives app kills and reboots.
 
+    // MARK: - Meditation Blocking
+
+    private let meditationStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("meditation"))
+
+    /// Activate meditation blocks for all selected meditation apps
+    func activateMeditationBlock(selection: FamilyActivitySelection) {
+        guard authorizationStatus == .approved else { return }
+
+        // Block apps
+        if !selection.applicationTokens.isEmpty {
+            meditationStore.shield.applications = selection.applicationTokens
+        }
+
+        // Block categories
+        if !selection.categoryTokens.isEmpty {
+            meditationStore.shield.applicationCategories = .specific(selection.categoryTokens)
+        }
+
+        // Save token data for shield extensions to check
+        let tokenDataArray = selection.applicationTokens.compactMap { token -> Data? in
+            try? JSONEncoder().encode(token)
+        }
+        sharedData.saveMeditationBlockedTokens(tokenDataArray)
+        sharedData.saveMeditationBlockActive(true)
+
+        print("🧘 MEDITATION: Blocked \(selection.applicationTokens.count) apps, \(selection.categoryTokens.count) categories")
+    }
+
+    /// Remove meditation blocks (after completing meditation intervention)
+    func deactivateMeditationBlock() {
+        meditationStore.clearAllSettings()
+        sharedData.saveMeditationBlockActive(false)
+        print("🧘 MEDITATION: All meditation blocks removed")
+    }
+
+    // MARK: - App Block (block-all-except-allowed, engaged when an alarm fires)
+
+    private let appBlockStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("appBlock"))
+
+    /// Blocks every app except the user's allow-list. Engaged when an alarm fires;
+    /// stays until the user completes the unblock flow.
+    func activateAppBlock() {
+        guard authorizationStatus == .approved else {
+            print("🔒 APP BLOCK: Not authorized — block not applied")
+            return
+        }
+        let allowed = AppBlockStore.allowedSelection.applicationTokens
+        appBlockStore.shield.applicationCategories = .all(except: allowed)
+        appBlockStore.application.denyAppRemoval = AppBlockStore.denyDeletion ? true : nil
+        AppBlockStore.isActive = true
+        sharedData.saveAppBlockActive(true) // App Group flag for the shield extensions
+        print("🔒 APP BLOCK: Activated (allowing \(allowed.count) apps)")
+    }
+
+    /// Removes the App Block (after the unblock intervention, or when the feature is turned off).
+    func deactivateAppBlock() {
+        appBlockStore.clearAllSettings()
+        AppBlockStore.isActive = false
+        sharedData.saveAppBlockActive(false) // App Group flag for the shield extensions
+        print("🔓 APP BLOCK: Deactivated")
+    }
+
+    /// Re-applies the allow-list / deny-deletion if the block is currently active
+    /// (e.g. the user changed the allowed apps while blocking).
+    func refreshAppBlockIfActive() {
+        if AppBlockStore.isActive { activateAppBlock() }
+    }
+
+    /// Check if meditation block should be active based on current time and schedules.
+    /// Only the most recent passed meditation time matters. Each time is tracked independently.
+    func checkMeditationSchedule() {
+        let times = sharedData.loadMeditationTimes()
+        guard !times.isEmpty else {
+            if sharedData.loadMeditationBlockActive() {
+                deactivateMeditationBlock()
+            }
+            return
+        }
+
+        let now = Date()
+        let calendar = Calendar.current
+        let currentHour = calendar.component(.hour, from: now)
+        let currentMinute = calendar.component(.minute, from: now)
+        let currentWeekday = calendar.component(.weekday, from: now) // 1 = Sunday
+        let currentTotalMinutes = currentHour * 60 + currentMinute
+
+        // Find the most recent meditation time that has passed today
+        var mostRecentTime: MeditationTime?
+        var mostRecentMinutes: Int = -1
+
+        for time in times {
+            guard time.days.contains(currentWeekday) else { continue }
+            let scheduledMinutes = time.hour * 60 + time.minute
+            if currentTotalMinutes >= scheduledMinutes && scheduledMinutes > mostRecentMinutes {
+                mostRecentMinutes = scheduledMinutes
+                mostRecentTime = time
+            }
+        }
+
+        guard let activeTime = mostRecentTime else {
+            // No meditation time has passed yet today — clear blocks
+            if sharedData.loadMeditationBlockActive() {
+                deactivateMeditationBlock()
+            }
+            return
+        }
+
+        // Check if this specific time slot has been completed
+        let timeKey = String(format: "%02d:%02d", activeTime.hour, activeTime.minute)
+        if sharedData.loadMeditationCompletedForTime(timeKey) {
+            // This time slot is done — unblock
+            if sharedData.loadMeditationBlockActive() {
+                deactivateMeditationBlock()
+            }
+        } else {
+            // This time slot is NOT done — block
+            sharedData.saveActiveMeditationTimeKey(timeKey)
+            if !sharedData.loadMeditationBlockActive() {
+                if let selectionData = UserDefaults.standard.data(forKey: "meditationAppSelection"),
+                   let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: selectionData) {
+                    activateMeditationBlock(selection: selection)
+                }
+            }
+        }
+    }
+
+    /// Register DeviceActivitySchedules for all meditation times so blocks activate in background
+    func registerMeditationSchedules(times: [MeditationTime]) {
+        // Remove old meditation schedules
+        let existingActivities = activityCenter.activities
+        let meditationActivities = existingActivities.filter { "\($0)".contains("meditation_") }
+        if !meditationActivities.isEmpty {
+            activityCenter.stopMonitoring(meditationActivities)
+            print("🧘 MEDITATION: Stopped \(meditationActivities.count) old meditation schedules")
+        }
+
+        for time in times {
+            for day in time.days {
+                let activityName = DeviceActivityName("meditation_\(time.id.uuidString)_\(day)")
+
+                let startComponents = DateComponents(hour: time.hour, minute: time.minute, weekday: day)
+                // 24-hour window for reliable iOS triggering
+                let endHour = (time.hour + 23) % 24
+                let endMinute = time.minute > 0 ? time.minute - 1 : 59
+                let endComponents = DateComponents(hour: endHour, minute: endMinute, weekday: day)
+
+                let schedule = DeviceActivitySchedule(
+                    intervalStart: startComponents,
+                    intervalEnd: endComponents,
+                    repeats: true
+                )
+
+                do {
+                    try activityCenter.startMonitoring(activityName, during: schedule)
+                    print("🧘 MEDITATION: Registered schedule for \(time.name) on day \(day) at \(time.hour):\(String(format: "%02d", time.minute))")
+                } catch {
+                    print("🧘 MEDITATION: Failed to register schedule: \(error)")
+                }
+            }
+        }
+    }
+
     // MARK: - Scheduled Blocking (Disconnect Times)
 
     func setupDisconnectSchedule(type: String, startTime: Date, endTime: Date, blockedAppsData: Data? = nil, scheduleID: String? = nil) {

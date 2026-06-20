@@ -27,6 +27,7 @@ enum OnboardingStep: Int, CaseIterable {
     case mood
     case studies
     case improve
+    case demo
     case review
     case clearVision
     case journey
@@ -64,6 +65,7 @@ enum OnboardingStep: Int, CaseIterable {
         case .mood: return "Mood"
         case .studies: return "Studies"
         case .improve: return "Improve"
+        case .demo: return "Demo"
         case .review: return "Review"
         case .clearVision: return "Clear Vision"
         case .journey: return "Journey"
@@ -160,6 +162,8 @@ struct OnboardingCoordinator: View {
                 OnboardingStudiesView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: advance, onBack: goBack)
             case .improve:
                 OnboardingImproveView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: advance, onBack: goBack)
+            case .demo:
+                OnboardingDemoView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: advance, onBack: goBack)
             case .review:
                 OnboardingReviewView(currentStep: currentStepNumber, totalSteps: totalSteps, onNext: advance, onBack: goBack)
             case .clearVision:

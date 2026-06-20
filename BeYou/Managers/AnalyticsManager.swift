@@ -27,6 +27,8 @@ class AnalyticsManager {
             config: replayConfig
         )
 
+        registerSuperProperties()
+
         print("📊 ANALYTICS: Mixpanel initialized with Session Replay")
     }
 
@@ -90,6 +92,19 @@ class AnalyticsManager {
 
     func trackSubscriptionRestored() {
         track("Subscription Restored")
+    }
+
+    func trackCancellationReason(reason: String, details: String) {
+        track("Subscription Cancel Reason", properties: [
+            "reason": reason,
+            "details": details,
+            "has_details": !details.isEmpty
+        ])
+        // Also store on the user profile so you can see it on the person record.
+        setUserProperties([
+            "last_cancel_reason": reason,
+            "last_cancel_details": details
+        ])
     }
 
     // MARK: - App Intention Events
@@ -191,5 +206,180 @@ class AnalyticsManager {
             "new_score": newScore,
             "change": newScore - oldScore
         ])
+    }
+
+    // MARK: - Foundations
+
+    /// Super properties are attached to every event. Call once at launch.
+    func registerSuperProperties() {
+        var props: [String: MixpanelType] = [:]
+        props["is_pro"] = SubscriptionManager.shared.isProUser
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            props["app_version"] = version
+        }
+        if let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+            props["build"] = build
+        }
+        Mixpanel.mainInstance().registerSuperProperties(props)
+    }
+
+    func setSuperProperty(_ key: String, _ value: MixpanelType) {
+        Mixpanel.mainInstance().registerSuperProperties([key: value])
+    }
+
+    /// Pushes the latest wake-up stats onto the user profile (call after a completion).
+    func syncWakeUpStats() {
+        var props: [String: MixpanelType] = [
+            "current_streak": AlarmCompletionStore.currentStreak(),
+            "total_wakeups": UserDefaults.standard.integer(forKey: "totalWakeUps")
+        ]
+        if let m = AlarmStatsStore.averageWakeMinutes { props["avg_wake_minutes"] = m }
+        if let s = AlarmStatsStore.averageResponseSeconds { props["avg_response_seconds"] = s }
+        if let fm = AlarmStatsStore.favoriteMission { props["favorite_mission"] = fm }
+        if let fs = AlarmStatsStore.favoriteSound { props["favorite_sound"] = fs }
+        setUserProperties(props)
+    }
+
+    // MARK: - Alarm Lifecycle
+
+    private func alarmProps(_ alarm: AlarmItem) -> [String: MixpanelType] {
+        var p: [String: MixpanelType] = [
+            "time": alarm.timeOnly,
+            "is_scheduled": alarm.isScheduled,
+            "repeat_days_count": alarm.repeatDays.count,
+            "mission_count": alarm.missionList.count,
+            "sound": alarm.sound
+        ]
+        p["missions"] = alarm.missionList as MixpanelType
+        return p
+    }
+
+    func trackAlarmCreated(_ alarm: AlarmItem) {
+        track("Alarm Created", properties: alarmProps(alarm))
+    }
+
+    func trackAlarmEdited(_ alarm: AlarmItem, field: String? = nil) {
+        var p = alarmProps(alarm)
+        if let field { p["field_changed"] = field }
+        track("Alarm Edited", properties: p)
+    }
+
+    func trackAlarmDeleted(_ alarm: AlarmItem, source: String) {
+        var p = alarmProps(alarm)
+        p["source"] = source
+        track("Alarm Deleted", properties: p)
+    }
+
+    func trackAlarmToggled(_ alarm: AlarmItem, enabled: Bool) {
+        var p = alarmProps(alarm)
+        p["enabled"] = enabled
+        track("Alarm Toggled", properties: p)
+    }
+
+    // MARK: - Wake-up Loop
+
+    func trackAlarmFired(alarmId: UUID, missions: [String]) {
+        track("Alarm Fired", properties: [
+            "alarm_id": alarmId.uuidString,
+            "missions": missions as MixpanelType,
+            "mission_count": missions.count
+        ])
+    }
+
+    func trackMissionStarted(mission: String, index: Int, ofCount: Int) {
+        track("Mission Started", properties: [
+            "mission": mission,
+            "index": index,
+            "of_count": ofCount
+        ])
+    }
+
+    func trackMissionCompleted(mission: String, secondsTaken: Int) {
+        track("Mission Completed", properties: [
+            "mission": mission,
+            "seconds_taken": secondsTaken
+        ])
+    }
+
+    func trackAlarmCompleted(wakeTime: String, secondsTaken: Int, missions: [String], sound: String, streak: Int) {
+        track("Alarm Completed", properties: [
+            "wake_time": wakeTime,
+            "time_to_complete_seconds": secondsTaken,
+            "missions": missions as MixpanelType,
+            "mission_count": missions.count,
+            "sound": sound,
+            "streak": streak
+        ])
+    }
+
+    // MARK: - Permissions
+
+    func trackPermissionResult(type: String, granted: Bool) {
+        track("Permission Result", properties: [
+            "type": type,
+            "granted": granted
+        ])
+    }
+
+    // MARK: - Paywall
+
+    func trackPaywallDismissed(placement: String, result: String) {
+        track("Paywall Dismissed", properties: [
+            "placement": placement,
+            "result": result
+        ])
+    }
+
+    // MARK: - Engagement (P1)
+
+    func trackAffirmationDetailOpened(categories: [String]) {
+        track("Affirmation Detail Opened", properties: ["categories": categories as MixpanelType])
+    }
+
+    func trackThemeChanged(themeId: String) {
+        track("Theme Changed", properties: ["theme_id": themeId])
+    }
+
+    func trackAffirmationCategoryChanged(categories: [String]) {
+        track("Affirmation Category Changed", properties: [
+            "categories": categories as MixpanelType,
+            "count": categories.count
+        ])
+    }
+
+    func trackAffirmationFavorited(favorited: Bool) {
+        track("Affirmation Favorited", properties: ["favorited": favorited])
+    }
+
+    func trackAffirmationShared() {
+        track("Affirmation Shared")
+    }
+
+    func trackMeditateTapped(source: String) {
+        track("Meditate Tapped", properties: ["source": source])
+    }
+
+    func trackMemorySaved(mission: String) {
+        track("Memory Saved", properties: ["mission": mission])
+    }
+
+    func trackMemoryViewed(mission: String) {
+        track("Memory Viewed", properties: ["mission": mission])
+    }
+
+    func trackMemoryDeleted(mission: String) {
+        track("Memory Deleted", properties: ["mission": mission])
+    }
+
+    func trackMemoriesCleared(count: Int) {
+        track("Memories Cleared", properties: ["count": count])
+    }
+
+    func trackInsightsViewed() {
+        track("Insights Viewed")
+    }
+
+    func trackStreakCalendarOpened() {
+        track("Streak Calendar Opened")
     }
 }

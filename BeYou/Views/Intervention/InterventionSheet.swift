@@ -1,25 +1,37 @@
 import SwiftUI
 import ManagedSettings
 import SuperwallKit
+import StoreKit
 
 @available(iOS 16.0, *)
 struct InterventionSheet: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var screenTimeManager: ScreenTimeManager
     @Environment(\.dismiss) var dismiss
+    @Environment(\.requestReview) private var requestReview
+    @AppStorage("completedInterventionCount") private var completedInterventionCount: Int = 0
 
     @State private var currentPage: InterventionPage = .mentalHealthCheck
     @State private var selectedMood: MentalHealthMood?
     @State private var selectedReason: MoodReason?
     @State private var currentAffirmationIndex: Int = 0
+    @State private var affirmationProgress: CGFloat = 0
+    @State private var canAdvance: Bool = false
+    @State private var progressTimer: Timer? = nil
     @State private var showThemePicker = false
     @State private var selectedDuration: Int? = nil // For scheduled blocks
     @State private var aiAffirmations: [String]? = nil
     @State private var isLoadingAffirmations = false
     @State private var showPaywallForUnlock = false
+    @State private var showVoicePicker = false
+    @State private var isAudioEnabled = false
+    @StateObject private var ttsService = TTSService.shared
     @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "starry-mountains"
     @AppStorage("selectedAffirmationCategories") private var selectedCategoriesData: Data = Data()
     @AppStorage("interventionAffirmationCount") private var interventionCount: Int = 3
+    @AppStorage("selectedVoiceId") private var selectedVoiceId: String = "uIZsnBL0YK1S5j69bAih"
+    @AppStorage("selectedVoiceName") private var selectedVoiceName: String = "Samantha"
+    @AppStorage("ttsEnabled") private var ttsEnabled: Bool = false
 
     private var blockType: String {
         SharedDataManager.shared.loadBlockType()
@@ -157,6 +169,11 @@ struct InterventionSheet: View {
                 }
                 // Whether AI succeeded or failed, stop loading → shows AI or fallback
                 isLoadingAffirmations = false
+                // Pre-fetch audio for the first affirmation now that text is ready
+                if currentPage == .affirmation {
+                    playAffirmationAudio(index: 0)
+                    prefetchNextAudio(after: 0)
+                }
             }
         }
 
@@ -198,7 +215,7 @@ struct InterventionSheet: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Use themed bg on affirmation page, light gradient otherwise
+                // Use themed bg on affirmation page, dark bg for breathing/reflect, light otherwise
                 if currentPage == .affirmation {
                     themedBackground
                         .animation(.easeInOut(duration: 0.4), value: selectedThemeId)
@@ -362,6 +379,7 @@ struct InterventionSheet: View {
             // Next button pinned to bottom
             Button(action: {
                 if selectedReason != nil {
+                    ttsService.clearCache()
                     loadAIAffirmations()
                     withAnimation {
                         currentPage = .affirmation
@@ -386,24 +404,53 @@ struct InterventionSheet: View {
 
     private var affirmationPage: some View {
         VStack(spacing: 0) {
-            // Progress dots
-            HStack(spacing: 8) {
-                ForEach(0..<interventionCount, id: \.self) { index in
-                    Circle()
-                        .fill(index <= currentAffirmationIndex
-                              ? Color(hex: currentTheme.textColor)
-                              : Color(hex: currentTheme.accentColor).opacity(0.3))
-                        .frame(width: 8, height: 8)
+            // Top bar: progress bars + audio button
+            HStack(spacing: 12) {
+                // Instagram-style progress bars
+                HStack(spacing: 4) {
+                    ForEach(0..<interventionCount, id: \.self) { index in
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color(hex: currentTheme.accentColor).opacity(0.3))
+                                    .frame(height: 3)
+
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color(hex: currentTheme.textColor))
+                                    .frame(
+                                        width: index < currentAffirmationIndex
+                                            ? geo.size.width
+                                            : (index == currentAffirmationIndex ? geo.size.width * affirmationProgress : 0),
+                                        height: 3
+                                    )
+                            }
+                        }
+                        .frame(height: 3)
+                    }
+                }
+
+                // Audio button
+                Button(action: { showVoicePicker = true }) {
+                    Image(systemName: ttsEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color(hex: currentTheme.accentColor))
+                        .frame(width: 36, height: 36)
+                        .background(Color(hex: currentTheme.accentColor).opacity(0.15))
+                        .clipShape(Circle())
                 }
             }
-            .padding(.top, 20)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
             .padding(.bottom, 12)
 
             // "Tap to continue" hint
-            Text(currentAffirmationIndex < interventionCount - 1 ? "Tap to continue" : "Tap to unlock")
+            Text(!canAdvance
+                 ? "Read and reflect..."
+                 : (currentAffirmationIndex < interventionCount - 1 ? "Tap to continue" : "Tap to unlock"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(Color(hex: currentTheme.accentColor))
                 .padding(.bottom, 8)
+                .animation(.easeInOut, value: canAdvance)
 
             Spacer()
 
@@ -430,7 +477,7 @@ struct InterventionSheet: View {
 
             Spacer()
 
-            // Bottom bar with paintbrush theme picker
+            // Bottom bar with theme picker
             HStack {
                 Spacer()
 
@@ -446,15 +493,40 @@ struct InterventionSheet: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 40)
         }
-        .contentShape(Rectangle()) // Make entire area tappable
+        .contentShape(Rectangle())
         .onTapGesture {
+            guard canAdvance else { return }
+            Haptics.tap()
+            progressTimer?.invalidate()
+            ttsService.stop()
             withAnimation(.easeInOut(duration: 0.3)) {
                 if currentAffirmationIndex < interventionCount - 1 {
                     currentAffirmationIndex += 1
+                    startProgressTimer()
+                    playAffirmationAudio(index: currentAffirmationIndex)
+                    prefetchNextAudio(after: currentAffirmationIndex)
                 } else {
+                    ttsService.clearCache()
                     currentPage = .confirmContinue
                 }
             }
+        }
+        .onAppear {
+            startProgressTimer()
+            // Only play audio if affirmations are already loaded (e.g. fallback)
+            // If AI is still loading, audio will be triggered when it finishes
+            if !isLoadingAffirmations {
+                playAffirmationAudio(index: 0)
+                prefetchNextAudio(after: 0)
+            }
+        }
+        .sheet(isPresented: $showVoicePicker) {
+            VoicePickerSheet(
+                selectedVoiceId: $selectedVoiceId,
+                selectedVoiceName: $selectedVoiceName,
+                ttsEnabled: $ttsEnabled,
+                isPresented: $showVoicePicker
+            )
         }
         .sheet(isPresented: $showThemePicker) {
             ThemePickerSheet(selectedThemeId: $selectedThemeId, isPresented: $showThemePicker)
@@ -467,6 +539,10 @@ struct InterventionSheet: View {
                     AnalyticsManager.shared.trackPaywallShown(placement: "intervention_unlock")
                 }
                 handler.onDismiss { _, result in
+                    AnalyticsManager.shared.trackPaywallDismissed(
+                        placement: "intervention_unlock",
+                        result: paywallResultName(result)
+                    )
                     switch result {
                     case .purchased, .restored:
                         withAnimation {
@@ -741,6 +817,44 @@ struct InterventionSheet: View {
         dismiss()
     }
 
+    private func playAffirmationAudio(index: Int) {
+        guard ttsEnabled, index < affirmationsToShow.count else { return }
+        let text = affirmationsToShow[index]
+        Task {
+            if let data = await ttsService.getAudio(text: text, voiceId: selectedVoiceId, index: index) {
+                await MainActor.run {
+                    ttsService.play(data: data)
+                }
+            }
+        }
+    }
+
+    private func prefetchNextAudio(after index: Int) {
+        guard ttsEnabled else { return }
+        let nextIndex = index + 1
+        guard nextIndex < affirmationsToShow.count else { return }
+        ttsService.prefetch(text: affirmationsToShow[nextIndex], voiceId: selectedVoiceId, index: nextIndex)
+    }
+
+    private func startProgressTimer() {
+        canAdvance = false
+        affirmationProgress = 0
+
+        let duration: Double = 3.0
+        let interval: Double = 0.03
+        let step = CGFloat(interval / duration)
+
+        progressTimer?.invalidate()
+        progressTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { timer in
+            if affirmationProgress >= 1.0 {
+                timer.invalidate()
+                canAdvance = true
+            } else {
+                affirmationProgress += step
+            }
+        }
+    }
+
     private func unlockApp() {
         print("🔓 INTERVENTION: Unlocking app: \(appName) (key: \(appKey))")
 
@@ -771,6 +885,14 @@ struct InterventionSheet: View {
 
         // Track intervention completed
         AnalyticsManager.shared.trackInterventionCompleted(appName: appName, unlockDuration: sessionMinutes)
+
+        // Request review after first intervention
+        completedInterventionCount += 1
+        if completedInterventionCount == 1 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                requestReview()
+            }
+        }
 
         // Get the app's token from the intention data
         // Try appKey (token key) first, then appName (display name), then storeKeyMapping
@@ -1065,7 +1187,7 @@ struct MoodButton: View {
                     )
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HapticButtonStyle())
     }
 }
 
@@ -1105,7 +1227,7 @@ struct ReasonButton: View {
                     )
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HapticButtonStyle())
     }
 }
 
@@ -1149,6 +1271,195 @@ struct DurationButton: View {
                     )
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(HapticButtonStyle())
+    }
+}
+
+// MARK: - Voice Picker Sheet
+
+struct VoicePickerSheet: View {
+    @Binding var selectedVoiceId: String
+    @Binding var selectedVoiceName: String
+    @Binding var ttsEnabled: Bool
+    @Binding var isPresented: Bool
+
+    private let voices: [(name: String, id: String, description: String)] = [
+        ("Samantha", "uIZsnBL0YK1S5j69bAih", "Soft & calm"),
+        ("Belle", "cNYrMw9glwJZXR8RwbuR", "Warm & natural"),
+        ("Adam", "bfGb7JTLUnZebZRiFYyq", "Deep & reassuring"),
+        ("London", "aj0fZfXTBc7E3By4X8L2", "Bright & encouraging"),
+        ("Oliver", "jfIS2w2yJi0grJZPyEsk", "Calm & steady"),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Voice Settings")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(Color(hex: "1A1A1A"))
+                Spacer()
+                Button(action: { isPresented = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(Color(hex: "CCCCCC"))
+                }
+            }
+            .padding(.top, 8)
+
+            // Enable toggle
+            HStack {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(Color(hex: "6C5CE7"))
+                Text("Read affirmations aloud")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(Color(hex: "1A1A1A"))
+                Spacer()
+                Toggle("", isOn: $ttsEnabled)
+                    .tint(Color(hex: "6C5CE7"))
+            }
+            .padding(16)
+            .background(Color(hex: "F8F8F8"))
+            .cornerRadius(12)
+
+            if ttsEnabled {
+                // Voice list
+                VStack(spacing: 8) {
+                    Text("Choose a voice")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(hex: "999999"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    ForEach(voices, id: \.id) { voice in
+                        Button(action: {
+                            selectedVoiceId = voice.id
+                            selectedVoiceName = voice.name
+                        }) {
+                            HStack(spacing: 14) {
+                                // Initial avatar
+                                ZStack {
+                                    Circle()
+                                        .fill(selectedVoiceId == voice.id
+                                              ? Color(hex: "6C5CE7").opacity(0.15)
+                                              : Color(hex: "F0F0F0"))
+                                        .frame(width: 40, height: 40)
+                                    Text(String(voice.name.prefix(1)))
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(selectedVoiceId == voice.id
+                                                         ? Color(hex: "6C5CE7")
+                                                         : Color(hex: "999999"))
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(voice.name)
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(Color(hex: "1A1A1A"))
+                                    Text(voice.description)
+                                        .font(.system(size: 13))
+                                        .foregroundColor(Color(hex: "999999"))
+                                }
+
+                                Spacer()
+
+                                if selectedVoiceId == voice.id {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 22))
+                                        .foregroundColor(Color(hex: "6C5CE7"))
+                                }
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(selectedVoiceId == voice.id
+                                                    ? Color(hex: "6C5CE7")
+                                                    : Color(hex: "EBEBEB"), lineWidth: selectedVoiceId == voice.id ? 2 : 1)
+                                    )
+                            )
+                        }
+                        .buttonStyle(HapticButtonStyle())
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// MARK: - Write Review Sheet
+
+struct WriteReviewSheet: View {
+    let onWriteReview: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image("be-you-icon")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .rotationEffect(.degrees(-10))
+
+            VStack(spacing: 12) {
+                Text("Enjoying BeYou?")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Color(hex: "1A1A1A"))
+
+                Text("Your words help others discover BeYou and start their journey to better screen time habits.")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(Color(hex: "666666"))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
+            .padding(.horizontal, 8)
+
+            HStack(spacing: 4) {
+                ForEach(0..<5, id: \.self) { _ in
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(Color(hex: "FFB800"))
+                }
+            }
+
+            Spacer()
+
+            VStack(spacing: 12) {
+                Button(action: onWriteReview) {
+                    Text("Write a Review")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(hex: "6C5CE7"), Color(hex: "8B7CF7")],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(14)
+                }
+
+                Button(action: onDismiss) {
+                    Text("Not now")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(Color(hex: "999999"))
+                }
+                .padding(.bottom, 8)
+            }
+        }
+        .padding(.horizontal, 32)
+        .padding(.bottom, 24)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 }
