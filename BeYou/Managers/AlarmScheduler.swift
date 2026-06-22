@@ -1,5 +1,52 @@
 import Foundation
 
+/// The "fridge note": remembers that a specific alarm's mission was finished on a specific day.
+/// Key = "<alarmId>|<yyyy-MM-dd>". Every backup carries its parent alarm's id, so any backup
+/// that fires can ask "is MY alarm already done today?" and self-dismiss — no fragile per-batch
+/// matching. Set on completion, cleared when that alarm's burst is (re-)armed (so re-using an
+/// alarm the same day works), and a recurring alarm's next day is a different key (so it rings).
+enum AlarmDoneStore {
+    private static let key = "alarmDoneOccurrences_v1"
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private static func occ(_ alarmId: String, _ date: Date) -> String {
+        "\(alarmId)|\(formatter.string(from: date))"
+    }
+
+    static func markDone(alarmId: String, on date: Date = Date()) {
+        var set = load()
+        set.insert(occ(alarmId, date))
+        // Keep only today's and yesterday's notes so the set can't grow forever.
+        let keep = [formatter.string(from: Date()),
+                    formatter.string(from: Date().addingTimeInterval(-86_400))]
+        set = set.filter { entry in keep.contains(where: { entry.hasSuffix("|\($0)") }) }
+        save(set)
+    }
+
+    static func isDone(alarmId: String, on date: Date = Date()) -> Bool {
+        load().contains(occ(alarmId, date))
+    }
+
+    static func clear(alarmId: String, on date: Date = Date()) {
+        var set = load()
+        set.remove(occ(alarmId, date))
+        save(set)
+    }
+
+    private static func load() -> Set<String> {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let s = try? JSONDecoder().decode(Set<String>.self, from: data) else { return [] }
+        return s
+    }
+    private static func save(_ set: Set<String>) {
+        if let data = try? JSONEncoder().encode(set) { UserDefaults.standard.set(data, forKey: key) }
+    }
+}
+
 /// Tracks which days the user finished an alarm mission, for the Home-screen weekly tracker.
 /// Stored under the same "alarmCompletedDays" key the tracker reads, as a JSON Set<String> of "yyyy-MM-dd".
 /// Not availability-gated so it can be called from the mission dismiss flow.
@@ -176,6 +223,10 @@ enum AlarmScheduler {
     private static func armBackups(for alarm: AlarmItem, from base: Date) {
         guard #available(iOS 26.1, *) else { return }
 
+        // Fresh burst → this occurrence is NOT done (clears any old "done" note for this
+        // alarm on the burst's fire date, so re-using/re-arming makes it ring again).
+        AlarmDoneStore.clear(alarmId: alarm.id.uuidString, on: base)
+
         // Clear any stale backups for this alarm before laying down a fresh set.
         cancelBackups(primaryId: alarm.id.uuidString)
 
@@ -240,6 +291,74 @@ enum AlarmScheduler {
         defaults.removeObject(forKey: "alarmBackups_\(primaryId)")
     }
 
+    /// Resolves a fired alarm (primary or backup) to its PARENT alarm id, then reports whether
+    /// that alarm's mission is already done for today (the "fridge note"). Resolves via the
+    /// durable WakeSession record FIRST, because cancelBackups deletes the alarmBackupPrimary_
+    /// pointer — without this, a late stray couldn't find its parent and would re-present.
+    static func parentAlarmId(of alarmKitId: String) -> String {
+        WakeSessionStore.session(forAlarmKitID: alarmKitId)?.alarmId
+            ?? UserDefaults.standard.string(forKey: "alarmBackupPrimary_\(alarmKitId)")
+            ?? alarmKitId
+    }
+
+    static func isAlarmDone(alarmKitId: String) -> Bool {
+        AlarmDoneStore.isDone(alarmId: parentAlarmId(of: alarmKitId))
+    }
+
+    /// A stray fired but its alarm's mission is already done → silence THIS one AND take all of
+    /// its siblings down with it (so one leftover firing cleans up the whole remaining group).
+    static func handleStray(alarmKitId: UUID) {
+        guard #available(iOS 26.1, *) else { return }
+        let id = alarmKitId.uuidString
+        AlarmService.shared.stopAlarm(id: alarmKitId)   // silence the stray that just fired
+
+        // Cancel every sibling — via the durable session list (the bridge list may already be
+        // gone after completion) AND the bridge list if it's still around.
+        if let session = WakeSessionStore.session(forAlarmKitID: id) {
+            for idStr in session.backupAlarmKitIDs {
+                if let uuid = UUID(uuidString: idStr) { AlarmService.shared.terminate(id: uuid) }
+            }
+        }
+        cancelBackups(primaryId: parentAlarmId(of: id))
+    }
+
+    // MARK: - Ghost guard + sweep
+
+    /// A "ghost" is a fired alarm we can't connect to anything: it has NO mission info AND no
+    /// parent in the saved-alarm list. These are leftovers whose bookkeeping was erased (the
+    /// alarm was deleted/edited, or the app reinstalled) but whose AlarmKit alarm survived a
+    /// failed cancel. Wake-up checks are NOT ghosts — they keep their mission bridge.
+    static func isGhost(alarmKitId: String) -> Bool {
+        // No mission id → it was cancelled / we don't know what to show → ghost. (Cancelling a
+        // backup erases its mission id, so a fired alarm with none should never present.)
+        guard let mission = UserDefaults.standard.string(forKey: "alarmMission_\(alarmKitId)") else { return true }
+        // The wake-up check is legit even though it has no saved parent (transient one-shot).
+        if mission == "Type Word" { return false }
+        // Otherwise it's legit ONLY if it resolves to a real, currently-saved alarm. We do NOT
+        // trust a stray mission id on its own — an orphan could keep one through a bookkeeping
+        // mismatch and would then wrongly present a mission. Requiring a saved parent closes that.
+        let parent = parentAlarmId(of: alarmKitId)
+        return !loadAlarms().contains(where: { $0.id.uuidString == parent })
+    }
+
+    /// Idea A: cancel every scheduled alarm that's a ghost. Run when a ghost fires AND on every
+    /// foreground (via reconcile), so ghosts are killed before they can ring. Best-effort — if a
+    /// cancel fails, the fire-time guard still refuses to show a mission for it.
+    static func sweepGhosts() {
+        guard #available(iOS 26.1, *) else { return }
+        for idStr in AlarmService.shared.currentAlarmIDs() where isGhost(alarmKitId: idStr) {
+            if let uuid = UUID(uuidString: idStr) { AlarmService.shared.terminate(id: uuid) }
+            print("👻 SCHEDULER: Swept ghost alarm \(idStr)")
+        }
+    }
+
+    /// A parentless ghost fired → silence it and sweep the rest. NEVER presents a mission.
+    static func dismissGhost(alarmKitId: UUID) {
+        guard #available(iOS 26.1, *) else { return }
+        AlarmService.shared.stopAlarm(id: alarmKitId)
+        sweepGhosts()
+    }
+
     /// Call when a mission is completed. Stops the ringing alarm (primary or a backup)
     /// and cancels every still-pending backup in its group, then refreshes (which disables
     /// a passed one-time alarm and moves the backup burst to the next soonest alarm).
@@ -257,6 +376,11 @@ enum AlarmScheduler {
         let session = WakeSessionStore.session(forAlarmKitID: firedKey)
             ?? WakeSessionStore.activeSession(forAlarmId: primaryId)
         if let session { WakeSessionStore.markCompleted(sessionID: session.id) }
+
+        // The "fridge note": this alarm's mission is done for today. EVERY backup of this alarm
+        // shares this one note, so any leftover that fires later reads it and self-dismisses —
+        // this is the reliable fix for the recurring double-mission / "did 5 missions" bug.
+        AlarmDoneStore.markDone(alarmId: primaryId)
         print("🔔 SESSIONLOG COMPLETE: firedKey=\(firedKey) primaryId=\(primaryId) → markedSession=\(session?.id ?? "nil") ownerAlarmId=\(session?.alarmId ?? "nil")")
 
         // Best-effort cleanup: stop the ringing alarm(s) — STOP (not cancel) the primary so a
@@ -366,6 +490,8 @@ enum AlarmScheduler {
             defaults.removeObject(forKey: "alarmBackupPrimary_\(idStr)")
         }
         WakeSessionStore.prune()
+        // Also sweep parentless ghosts (deleted/edited/reinstalled leftovers) before they ring.
+        sweepGhosts()
     }
 
     // MARK: - Refresh (reconcile + soonest-only backups)
@@ -409,39 +535,32 @@ enum AlarmScheduler {
     static func refreshSoonestBackups() {
         guard #available(iOS 26.1, *) else { return }
         let defaults = UserDefaults.standard
-
-        // Never re-point/tear-down while a burst is actively firing (an incomplete session
-        // whose window is live). Its backups must stay armed so a mid-mission kill re-rings.
         let now = Date()
-        let burstSpan = (backupOffsets.last ?? 180) + 60
-        let liveBurst = WakeSessionStore.allSessions().values.contains {
-            $0.completedAt == nil
-            && now <= $0.validUntil
-            && now >= $0.lastBackupFire.addingTimeInterval(-burstSpan)
+
+        guard let soonest = nextAlarm(from: loadAlarms()) else {
+            // No upcoming alarm → tear down any leftover burst.
+            if let prevId = defaults.string(forKey: "currentBackupPrimaryID") { cancelBackups(primaryId: prevId) }
+            defaults.removeObject(forKey: "currentBackupPrimaryID")
+            defaults.removeObject(forKey: "currentBackupFireDate")
+            return
         }
-        if liveBurst { return }
 
-        let soonest = nextAlarm(from: loadAlarms())
-        let soonestId = soonest?.alarm.id.uuidString
-        let soonestFire = soonest?.date
-
-        let prevId = defaults.string(forKey: "currentBackupPrimaryID")
-        let prevFire = defaults.object(forKey: "currentBackupFireDate") as? Date
-
-        // Nothing changed — leave the existing burst in place (avoids churn on every open).
-        guard prevId != soonestId || prevFire != soonestFire else { return }
-
-        // Tear down the previous burst.
-        if let prevId { cancelBackups(primaryId: prevId) }
-        defaults.removeObject(forKey: "currentBackupPrimaryID")
-        defaults.removeObject(forKey: "currentBackupFireDate")
-
-        // Arm the new soonest alarm (burst sits around its next fire time).
-        if let soonest {
-            armBackups(for: soonest.alarm, from: soonest.date)
-            defaults.set(soonest.alarm.id.uuidString, forKey: "currentBackupPrimaryID")
-            defaults.set(soonest.date, forKey: "currentBackupFireDate")
+        // Does the SOONEST alarm ALREADY have its own live (not-completed, not-expired) burst?
+        // If so, leave it alone — that's the actively-firing alarm we must not disturb (so a
+        // mid-mission kill still re-rings). NOTE: we check the soonest alarm SPECIFICALLY, not
+        // "any session is live" — a stale leftover session from a *different* alarm must NOT
+        // block arming a brand-new alarm (that was the `session=nil`/no-re-ring bug).
+        let soonestId = soonest.alarm.id.uuidString
+        let alreadyArmed = WakeSessionStore.allSessions().values.contains {
+            $0.alarmId == soonestId && $0.completedAt == nil && now <= $0.validUntil
         }
+        if alreadyArmed { return }
+
+        // (Re)arm the soonest. Tear down the previous burst first to free quota.
+        if let prevId = defaults.string(forKey: "currentBackupPrimaryID") { cancelBackups(primaryId: prevId) }
+        armBackups(for: soonest.alarm, from: soonest.date)
+        defaults.set(soonestId, forKey: "currentBackupPrimaryID")
+        defaults.set(soonest.date, forKey: "currentBackupFireDate")
     }
 
     // MARK: - Next-alarm computation

@@ -220,6 +220,11 @@ class AlarmService: ObservableObject {
         return ids.map { $0.uuidString }
     }
 
+    /// All alarm ids currently scheduled with iOS, read fresh (used by the ghost sweep).
+    func currentAlarmIDs() -> [String] {
+        ((try? manager.alarms) ?? []).map { $0.id.uuidString }
+    }
+
     func stopAlarm(id: Alarm.ID) {
         do {
             try manager.stop(id: id)

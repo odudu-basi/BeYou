@@ -80,13 +80,21 @@ struct MainAppView: View {
                 checkForWriteReviewPrompt()
                 checkForAlertingAlarm()
                 checkForPendingMission()
-                // Returning to a mission in progress → resume the loop (AVAudioPlayer stops
-                // when backgrounded).
+                // Returning to a mission in progress → resume the gapless loop.
                 if showAlarmMission, let id = alertingAlarmId {
                     MissionAlarmAudio.shared.start(sound: soundForAlarm(id)) {
                         if #available(iOS 26.1, *) { AlarmService.shared.stopAlarm(id: id) }
                     }
                 }
+            } else if newPhase == .background {
+                // Backgrounded or locked → RELEASE the audio channel. A suspended app that keeps
+                // the .playback session holds the audio hostage, which MUTES the system backup
+                // alarms (they fire and wake the screen but make no sound). Letting go here means
+                // the real alarms ring normally while we're away; the loop restarts on return.
+                // (This is what made "kill = rings, background = silent" — now background frees it
+                // too.) We use .background (not transient .inactive) so the loop stays gapless
+                // during the mission and only releases when you actually leave/lock.
+                MissionAlarmAudio.shared.stop()
             }
             // NOTE: we deliberately do NOT cancel/re-arm backups around backgrounding. The
             // backup burst stays armed the whole time so a force-quit still re-rings; any
@@ -265,11 +273,19 @@ struct MainAppView: View {
             return
         }
 
-        // Occurrence already completed → this is a stale leftover backup. Dismiss it and
-        // do NOT show the mission again (the double-mission guard — the one safety net we keep).
+        // Alarm's mission already done today ("fridge note") → this is a stale leftover.
+        // Dismiss it, cancel its siblings, and do NOT show the mission again.
         if isCompletedOccurrence(for: alarmId.uuidString) {
             logSessionResolution("DISMISS(alerting)", alarmId.uuidString)
-            service.stopAlarm(id: alarmId)
+            AlarmScheduler.handleStray(alarmKitId: alarmId)
+            return
+        }
+
+        // Parentless ghost (deleted/edited/reinstalled leftover) → never show a mission for it.
+        // Silence it and sweep the rest. This is the infinite-ring fix.
+        if AlarmScheduler.isGhost(alarmKitId: alarmId.uuidString) {
+            logSessionResolution("DISMISS(ghost-alerting)", alarmId.uuidString)
+            AlarmScheduler.dismissGhost(alarmKitId: alarmId)
             return
         }
 
@@ -290,10 +306,18 @@ struct MainAppView: View {
         // Consume the flag so it doesn't re-trigger.
         UserDefaults.standard.removeObject(forKey: "pendingMissionAlarmID")
 
-        // Stale leftover (mission already done for this occurrence) → dismiss, don't present.
+        // Stale leftover (alarm's mission already done today) → dismiss, cancel siblings,
+        // don't present.
         if isCompletedOccurrence(for: idStr) {
             logSessionResolution("DISMISS(pending)", idStr)
-            if #available(iOS 26.1, *) { AlarmService.shared.stopAlarm(id: alarmId) }
+            if #available(iOS 26.1, *) { AlarmScheduler.handleStray(alarmKitId: alarmId) }
+            return
+        }
+
+        // Parentless ghost → never show a mission for it; silence it and sweep the rest.
+        if AlarmScheduler.isGhost(alarmKitId: idStr) {
+            logSessionResolution("DISMISS(ghost-pending)", idStr)
+            if #available(iOS 26.1, *) { AlarmScheduler.dismissGhost(alarmKitId: alarmId) }
             return
         }
 
@@ -313,10 +337,11 @@ struct MainAppView: View {
         print("🔔 SESSIONLOG \(tag): alarmKitId=\(alarmKitId) → session=\(sid) completedAt=\(completed) ownerAlarmId=\(owningAlarm)")
     }
 
-    /// Whether the alarm's session (shared by its primary + all backups) is already completed.
-    /// Any leftover backup that fires resolves to the same session → self-dismisses → no loop.
+    /// Whether this alarm's mission is already done today ("fridge note"). Every backup carries
+    /// its parent alarm's id, so they all read the same note → a leftover self-dismisses → no
+    /// double mission. (Replaces the fragile per-session lookup that broke for recurring alarms.)
     private func isCompletedOccurrence(for alarmKitId: String) -> Bool {
-        WakeSessionStore.isCompleted(alarmKitID: alarmKitId)
+        AlarmScheduler.isAlarmDone(alarmKitId: alarmKitId)
     }
 
     /// The user-chosen sound for the alarm that's firing (resolving a backup back to its
