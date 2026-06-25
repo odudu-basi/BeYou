@@ -113,6 +113,17 @@ struct AlarmsView: View {
     @State private var showAddAlarm = false
     @State private var editingAlarm: AlarmItem?
 
+    /// Alarms ordered for display: enabled ones first (disabled sink to the bottom), each group
+    /// sorted by clock time. Computed at render, so toggling an alarm on/off re-sorts it into
+    /// place automatically.
+    private var sortedAlarms: [AlarmItem] {
+        alarms.sorted { a, b in
+            if a.isEnabled != b.isEnabled { return a.isEnabled }   // enabled before disabled
+            if a.hour != b.hour { return a.hour < b.hour }         // earliest hour first
+            return a.minute < b.minute                             // then earliest minute
+        }
+    }
+
     // App Block
     @AppStorage("appBlockEnabled") private var appBlockEnabled: Bool = false
     @AppStorage("appBlockActive") private var appBlockActive: Bool = false
@@ -158,7 +169,7 @@ struct AlarmsView: View {
                         }
                     } else {
                         // Alarm cards
-                        ForEach(alarms) { alarm in
+                        ForEach(sortedAlarms) { alarm in
                             AlarmCard(
                                 alarm: alarm,
                                 onEdit: { editingAlarm = alarm },
@@ -193,7 +204,8 @@ struct AlarmsView: View {
             }
         }
         .onAppear {
-            AlarmScheduler.refresh()
+            // Just load the list to display — heavy refresh runs once per launch/foreground in
+            // MainAppView, not on every tab switch.
             loadAlarms()
         }
         .sheet(isPresented: $showAddAlarm) {
@@ -1011,10 +1023,13 @@ struct MissionPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") { isPresented = false }
+                    Button(action: { isPresented = false }) {
+                        Text("Done").fixedSize()   // don't let the inline title squeeze it
+                    }
                 }
             }
         }
+        .navigationViewStyle(.stack)
     }
 }
 
@@ -1103,10 +1118,13 @@ struct SoundPickerSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") { isPresented = false }
+                    Button(action: { isPresented = false }) {
+                        Text("Done").fixedSize()   // don't let the inline title squeeze it
+                    }
                 }
             }
             .onDisappear { preview.stop() }
         }
+        .navigationViewStyle(.stack)
     }
 }

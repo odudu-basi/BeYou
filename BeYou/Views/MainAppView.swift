@@ -74,8 +74,9 @@ struct MainAppView: View {
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 NotificationManager.shared.clearBadge()   // reset the app-icon badge on open
-                // Sweep completed/expired leftovers FIRST, so a stray can't present a mission.
-                if #available(iOS 26.1, *) { AlarmScheduler.reconcile() }
+                // Full refresh on foreground (sweep leftovers + re-arm the soonest alarm's burst).
+                // Done here once per foreground — NOT on every tab switch (that was the lag).
+                if #available(iOS 26.1, *) { AlarmScheduler.refresh() }
                 checkForPendingIntervention()
                 checkForWriteReviewPrompt()
                 checkForAlertingAlarm()
@@ -150,8 +151,8 @@ struct MainAppView: View {
             retireMeditationIfNeeded()   // remove any leftover meditation block (feature retired)
             // One-time: flush pre-existing ghost alarms from the old system, then rebuild.
             if #available(iOS 26.1, *) { AlarmScheduler.migrateWipeIfNeeded() }
-            // Sweep completed/expired leftovers on launch before anything can present.
-            if #available(iOS 26.1, *) { AlarmScheduler.reconcile() }
+            // Full refresh on launch (sweep leftovers + arm the soonest alarm's backups).
+            if #available(iOS 26.1, *) { AlarmScheduler.refresh() }
             checkForPendingIntervention()
             setupNotificationListener()
             checkForAlertingAlarm()
@@ -347,6 +348,8 @@ struct MainAppView: View {
     /// The user-chosen sound for the alarm that's firing (resolving a backup back to its
     /// primary), used to drive the continuous mission loop. Falls back to "Default".
     private func soundForAlarm(_ alarmId: UUID) -> String {
+        // An explicit sound stored with this alarm (e.g. the wake-up check) wins.
+        if let stored = UserDefaults.standard.string(forKey: "alarmSound_\(alarmId.uuidString)") { return stored }
         let primaryId = UserDefaults.standard.string(forKey: "alarmBackupPrimary_\(alarmId.uuidString)") ?? alarmId.uuidString
         return AlarmScheduler.loadAlarms().first { $0.id.uuidString == primaryId }?.sound ?? "Default"
     }

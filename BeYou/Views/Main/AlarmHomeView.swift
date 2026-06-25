@@ -163,7 +163,8 @@ struct AlarmHomeView: View {
             }
         }
         .onAppear {
-            AlarmScheduler.refresh()
+            // Just load what the view displays — the heavy refresh runs once per launch/foreground
+            // in MainAppView, not on every tab switch (that was the lag).
             alarms = AlarmScheduler.loadAlarms()
             now = Date()
             streakCount = AlarmCompletionStore.currentStreak()
@@ -173,7 +174,6 @@ struct AlarmHomeView: View {
         }
         .onChange(of: scenePhase) { phase in
             if phase == .active {
-                AlarmScheduler.refresh()
                 alarms = AlarmScheduler.loadAlarms()
                 now = Date()
                 streakCount = AlarmCompletionStore.currentStreak()

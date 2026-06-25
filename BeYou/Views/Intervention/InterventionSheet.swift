@@ -248,16 +248,19 @@ struct InterventionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(action: {
                         appState.isInterventionActive = false
                         appState.pendingAppToUnlock = nil
                         dismiss()
+                    }) {
+                        Text("Cancel").fixedSize()   // don't let the bar squeeze/truncate it
                     }
                     .foregroundColor(currentPage == .affirmation ? Color(hex: currentTheme.accentColor) : Color(hex: "64748B"))
                 }
             }
             .interactiveDismissDisabled()
         }
+        .navigationViewStyle(.stack)
     }
 
     // MARK: - Mental Health Check Page

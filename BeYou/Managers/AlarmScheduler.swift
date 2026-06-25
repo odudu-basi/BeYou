@@ -137,10 +137,23 @@ enum AlarmScheduler {
 
     // MARK: - AlarmKit wiring
 
-    /// Schedules the alarm with AlarmKit if enabled, or cancels it if disabled,
-    /// then refreshes which alarm holds the backup burst.
+    /// Schedules the alarm with AlarmKit if enabled, or cancels it if disabled, then refreshes
+    /// which alarm holds the backup burst.
+    ///
+    /// RELIABLE FORM (Option 1): the safety net is armed immediately and the fragile part is
+    /// isolated. `sync` runs synchronously — it clears the old session, kicks off the primary
+    /// `schedule` (its own background Task), and calls `refresh()` right away to arm the backups.
+    /// The backups are therefore ALWAYS in place the instant you save, independent of the primary
+    /// Task. The primary Task handles the edit case (cancel-old → wait-until-gone → reschedule) on
+    /// its own, so even if that reschedule hiccups, the backups still cover the new time — the
+    /// alarm rings (maybe slightly late) but can never go silent or ring at the old time.
+    ///
+    /// On an edit we clear the old session FIRST (synchronously) so the backup-arming step
+    /// re-arms a fresh burst instead of seeing the leftover session as "already armed".
     static func sync(_ alarm: AlarmItem) {
+        guard #available(iOS 26.1, *) else { return }
         if alarm.isEnabled {
+            WakeSessionStore.removeSessions(forAlarmId: alarm.id.uuidString) // edit: let backups re-arm
             schedule(alarm)
         } else {
             cancel(alarm)
@@ -148,6 +161,20 @@ enum AlarmScheduler {
         refresh()
     }
 
+    /// Registers the PRIMARY alarm with AlarmKit. Bridge keys are written synchronously up front
+    /// (so the fire-time handler can resolve the mission even if the schedule Task lags); the
+    /// AlarmKit work runs in a background Task.
+    ///
+    /// EDIT HANDLING (Option 1): on an edit the old primary is still registered under the same id,
+    /// and AlarmKit rejects scheduling a duplicate id (Code=0). So the Task first cancels the old
+    /// primary and WAITS until AlarmKit actually drops it (`cancelAndWaitGone`) before re-adding —
+    /// giving a clean replace at the new time with no old-time stray. This is a no-op for a
+    /// brand-new alarm (the id isn't registered), so new alarms are unaffected.
+    ///
+    /// CRUCIAL: this cancel/poll lives ONLY in this primary Task. The backups (the safety net) are
+    /// armed by `refresh()`, which the caller runs SYNCHRONOUSLY and independently — so the backups
+    /// are always in place regardless of how this reschedule fares. Worst case the reschedule
+    /// hiccups and the alarm rings slightly late via backups; it can never go silent.
     static func schedule(_ alarm: AlarmItem) {
         guard #available(iOS 26.1, *) else { return }
 
@@ -175,6 +202,10 @@ enum AlarmScheduler {
                     return
                 }
             }
+            // EDIT: remove the old primary and wait until it's truly gone before re-adding, so the
+            // re-schedule isn't rejected as a duplicate. No-op for a brand-new id. Decoupled from
+            // the backups, which the caller already armed synchronously.
+            await service.cancelAndWaitGone(id: alarm.id)
             do {
                 _ = try await service.scheduleAlarm(
                     id: alarm.id,
@@ -200,6 +231,22 @@ enum AlarmScheduler {
         UserDefaults.standard.removeObject(forKey: "alarmFireDate_\(alarm.id.uuidString)")
         AlarmService.shared.cancelAlarm(id: alarm.id)
         cancelBackups(primaryId: alarm.id.uuidString)
+        cancelPendingWakeUpCheck(forAlarmId: alarm.id.uuidString)
+    }
+
+    /// Cancels a still-pending wake-up check that belongs to a now-deleted/disabled alarm. We
+    /// remove the check's mission bridge FIRST — so even if AlarmKit refuses the cancel, the
+    /// surviving check has no mission and the ghost guard dismisses it — then best-effort terminate.
+    private static func cancelPendingWakeUpCheck(forAlarmId alarmId: String) {
+        guard #available(iOS 26.1, *) else { return }
+        let key = "wakeCheckId_\(alarmId)"
+        guard let checkIdStr = UserDefaults.standard.string(forKey: key) else { return }
+        UserDefaults.standard.removeObject(forKey: "alarmMission_\(checkIdStr)")
+        UserDefaults.standard.removeObject(forKey: "alarmItems_\(checkIdStr)")
+        UserDefaults.standard.removeObject(forKey: "alarmSound_\(checkIdStr)")
+        UserDefaults.standard.removeObject(forKey: key)
+        if let checkId = UUID(uuidString: checkIdStr) { AlarmService.shared.terminate(id: checkId) }
+        print("⏰ SCHEDULER: Cancelled pending wake-up check for removed alarm \(alarmId)")
     }
 
     // MARK: - Backup alarms (anti-skip)
@@ -329,6 +376,19 @@ enum AlarmScheduler {
     /// alarm was deleted/edited, or the app reinstalled) but whose AlarmKit alarm survived a
     /// failed cancel. Wake-up checks are NOT ghosts — they keep their mission bridge.
     static func isGhost(alarmKitId: String) -> Bool {
+        // Single-call path (the fire-time guard). Fetches the lookup data once.
+        isGhost(alarmKitId,
+                savedIds: Set(loadAlarms().map { $0.id.uuidString }),
+                sessionMap: WakeSessionStore.map(),
+                sessions: WakeSessionStore.allSessions())
+    }
+
+    /// Loop-friendly version: caller passes the saved-alarm ids + session data so we don't
+    /// re-decode them for every alarm during a sweep (that re-decoding was the tab-switch lag).
+    private static func isGhost(_ alarmKitId: String,
+                                savedIds: Set<String>,
+                                sessionMap: [String: String],
+                                sessions: [String: WakeSession]) -> Bool {
         // No mission id → it was cancelled / we don't know what to show → ghost. (Cancelling a
         // backup erases its mission id, so a fired alarm with none should never present.)
         guard let mission = UserDefaults.standard.string(forKey: "alarmMission_\(alarmKitId)") else { return true }
@@ -337,8 +397,10 @@ enum AlarmScheduler {
         // Otherwise it's legit ONLY if it resolves to a real, currently-saved alarm. We do NOT
         // trust a stray mission id on its own — an orphan could keep one through a bookkeeping
         // mismatch and would then wrongly present a mission. Requiring a saved parent closes that.
-        let parent = parentAlarmId(of: alarmKitId)
-        return !loadAlarms().contains(where: { $0.id.uuidString == parent })
+        let parent = sessions[sessionMap[alarmKitId] ?? ""]?.alarmId
+            ?? UserDefaults.standard.string(forKey: "alarmBackupPrimary_\(alarmKitId)")
+            ?? alarmKitId
+        return !savedIds.contains(parent)
     }
 
     /// Idea A: cancel every scheduled alarm that's a ghost. Run when a ghost fires AND on every
@@ -346,7 +408,12 @@ enum AlarmScheduler {
     /// cancel fails, the fire-time guard still refuses to show a mission for it.
     static func sweepGhosts() {
         guard #available(iOS 26.1, *) else { return }
-        for idStr in AlarmService.shared.currentAlarmIDs() where isGhost(alarmKitId: idStr) {
+        // Decode the lookup data ONCE (not per-alarm — that was the tab-switch slowdown).
+        let savedIds = Set(loadAlarms().map { $0.id.uuidString })
+        let sessionMap = WakeSessionStore.map()
+        let sessions = WakeSessionStore.allSessions()
+        for idStr in AlarmService.shared.currentAlarmIDs()
+            where isGhost(idStr, savedIds: savedIds, sessionMap: sessionMap, sessions: sessions) {
             if let uuid = UUID(uuidString: idStr) { AlarmService.shared.terminate(id: uuid) }
             print("👻 SCHEDULER: Swept ghost alarm \(idStr)")
         }
@@ -428,6 +495,10 @@ enum AlarmScheduler {
         // Bridge: MainAppView reads these to present the typing mission with the word.
         UserDefaults.standard.set("Type Word", forKey: "alarmMission_\(checkId.uuidString)")
         UserDefaults.standard.set([word], forKey: "alarmItems_\(checkId.uuidString)")
+        // Remember the source alarm's sound so the in-app mission loop matches it (not Default).
+        UserDefaults.standard.set(alarm.sound, forKey: "alarmSound_\(checkId.uuidString)")
+        // Link the check to its source alarm so deleting/disabling that alarm can cancel it.
+        UserDefaults.standard.set(checkId.uuidString, forKey: "wakeCheckId_\(alarm.id.uuidString)")
 
         let sound = AlarmService.alertSound(for: alarm.sound)
         Task {

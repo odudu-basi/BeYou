@@ -182,6 +182,11 @@ struct AlarmDismissFlowView: View {
 
     private var completionView: some View {
         VStack(spacing: 20) {
+            Text("BeYou")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(Color(hex: "1A1A1A"))
+                .padding(.top, 20)
+
             Spacer()
 
             Text("☀️").font(.system(size: 80))
