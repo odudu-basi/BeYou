@@ -220,26 +220,6 @@ class AlarmService: ObservableObject {
         return ids.map { $0.uuidString }
     }
 
-    /// All alarm ids currently scheduled with iOS, read fresh (used by the ghost sweep).
-    func currentAlarmIDs() -> [String] {
-        ((try? manager.alarms) ?? []).map { $0.id.uuidString }
-    }
-
-    /// Cancels an alarm and waits until AlarmKit actually stops reporting it — so a follow-up
-    /// schedule with the SAME id isn't rejected as a duplicate, and a lagging async cancel can't
-    /// nuke the freshly-scheduled replacement. No-op if the id isn't currently scheduled (a brand
-    /// new alarm). Polls the live alarm list every 50ms, up to `timeout`.
-    func cancelAndWaitGone(id: Alarm.ID, timeout: TimeInterval = 1.5) async {
-        guard currentAlarmIDs().contains(id.uuidString) else { return }  // nothing to remove (create)
-        cancelAlarm(id: id)
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if !currentAlarmIDs().contains(id.uuidString) { return }     // confirmed gone
-            try? await Task.sleep(nanoseconds: 50_000_000)               // 50ms
-        }
-        print("⏰ ALARM: cancelAndWaitGone timed out for \(id.uuidString)")
-    }
-
     func stopAlarm(id: Alarm.ID) {
         do {
             try manager.stop(id: id)

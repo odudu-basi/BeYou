@@ -104,17 +104,6 @@ enum WakeSessionStore {
         saveMap(map().filter { $0.value != sessionID })
     }
 
-    /// Drops every session belonging to a user alarm (used when re-scheduling on an edit, so the
-    /// backup-arming step re-arms instead of seeing a leftover session as "already armed").
-    static func removeSessions(forAlarmId alarmId: String) {
-        var sessions = allSessions()
-        let removedIDs = Set(sessions.values.filter { $0.alarmId == alarmId }.map { $0.id })
-        guard !removedIDs.isEmpty else { return }
-        for id in removedIDs { sessions[id] = nil }
-        saveSessions(sessions)
-        saveMap(map().filter { !removedIDs.contains($0.value) })
-    }
-
     // MARK: - Reconciliation (Layers 3 & 4)
 
     /// Backup AlarmKit ids that should be cancelled now: anything belonging to a session whose
