@@ -1,5 +1,6 @@
 import SwiftUI
 import UserNotifications
+import StoreKit
 
 @available(iOS 16.0, *)
 struct MainAppView: View {
@@ -14,6 +15,7 @@ struct MainAppView: View {
     @AppStorage("hasWrittenReview") private var hasWrittenReview: Bool = false
     @AppStorage("nextWriteReviewAt") private var nextWriteReviewAt: Int = 3
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.requestReview) private var requestReview
 
     var body: some View {
         // Native TabView → Apple's standard tab bar (Liquid Glass on iOS 26).
@@ -56,14 +58,15 @@ struct MainAppView: View {
         }
         .fullScreenCover(isPresented: $showAlarmMission) {
             if let alarmId = alertingAlarmId {
-                let raw = UserDefaults.standard.string(forKey: "alarmMission_\(alarmId.uuidString)") ?? "Item Search"
-                let missions = raw.split(separator: "|").map(String.init)
-                let itemsData = UserDefaults.standard.stringArray(forKey: "alarmItems_\(alarmId.uuidString)") ?? []
+                // PHASE 2: resolve mission/items from the owner's CURRENT saved alarm (one source
+                // of truth) instead of per-id sticky notes, so a leftover backup can't show a
+                // stale mission after an edit. Falls back to bridges for the wake-up check.
+                let resolved = AlarmScheduler.resolveFiring(alarmKitId: alarmId.uuidString)
                 AlarmDismissFlowView(
                     alarmId: alarmId,
                     alarmName: "Alarm",
-                    missions: missions.isEmpty ? ["Item Search"] : missions,
-                    selectedItems: itemsData,
+                    missions: resolved.missions.isEmpty ? ["Item Search"] : resolved.missions,
+                    selectedItems: resolved.items,
                     onDismissed: {
                         showAlarmMission = false
                         alertingAlarmId = nil
@@ -125,11 +128,7 @@ struct MainAppView: View {
                 UserDefaults.standard.removeObject(forKey: "pendingMissionAlarmID")
 
                 // If the just-completed alarm queued a review prompt, show it now.
-                if ReviewPromptManager.isPending && !hasWrittenReview {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        showWriteReviewSheet = true
-                    }
-                }
+                showReviewPromptIfNeeded(afterDelay: 0.8)
             }
         }
         .onChange(of: appState.isInterventionActive) { isActive in
@@ -251,13 +250,20 @@ struct MainAppView: View {
     }
 
     private func checkForWriteReviewPrompt() {
-        guard !hasWrittenReview,
-              !showInterventionSheet,
-              !showAlarmMission,
-              ReviewPromptManager.isPending else { return }
+        showReviewPromptIfNeeded(afterDelay: 1.0)
+    }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            showWriteReviewSheet = true
+    /// Surfaces a queued review prompt, preferring Apple's NATIVE rating popup (raised on the very
+    /// first completion) over the custom "Write a Review" sheet (days 2–3 / every 5th). Guarded so
+    /// it never interrupts a mission or the intervention flow.
+    private func showReviewPromptIfNeeded(afterDelay delay: Double) {
+        guard !hasWrittenReview, !showInterventionSheet, !showAlarmMission else { return }
+
+        if ReviewPromptManager.pendingNativeReview {
+            ReviewPromptManager.pendingNativeReview = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { requestReview() }
+        } else if ReviewPromptManager.isPending {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { showWriteReviewSheet = true }
         }
     }
 
@@ -322,19 +328,23 @@ struct MainAppView: View {
         print("🔔 SESSIONLOG \(tag): alarmKitId=\(alarmKitId) → session=\(sid) completedAt=\(completed) ownerAlarmId=\(owningAlarm)")
     }
 
-    /// Whether the alarm's session (shared by its primary + all backups) is already completed.
-    /// Any leftover backup that fires resolves to the same session → self-dismisses → no loop.
+    /// Whether this firing's alarm is already done. Checks the durable "fridge note" (parent
+    /// alarm completed within the burst window) FIRST — robust even if the per-session lookup
+    /// misses — then the per-session flag. Both are positive-only, so neither can silence a
+    /// fresh alarm; a leftover that resolves to a recently-completed alarm self-dismisses → no loop.
     private func isCompletedOccurrence(for alarmKitId: String) -> Bool {
-        WakeSessionStore.isCompleted(alarmKitID: alarmKitId)
+        // PHASE 3/5: the single owner+occurrence checklist is the authoritative "done" signal.
+        // WakeSession.isCompleted remains as a secondary net (still load-bearing for burst timing)
+        // until it too is retired.
+        if #available(iOS 16.0, *), AlarmScheduler.isOccurrenceDone(alarmKitId: alarmKitId) { return true }
+        return WakeSessionStore.isCompleted(alarmKitID: alarmKitId)
     }
 
-    /// The user-chosen sound for the alarm that's firing (resolving a backup back to its
-    /// primary), used to drive the continuous mission loop. Falls back to "Default".
+    /// The user-chosen sound for the alarm that's firing, used to drive the continuous mission
+    /// loop. PHASE 2: resolved from the owner's CURRENT saved alarm (one source of truth), with a
+    /// legacy-bridge fallback for the wake-up check. Falls back to "Default".
     private func soundForAlarm(_ alarmId: UUID) -> String {
-        // An explicit sound stored with this alarm (e.g. the wake-up check) wins.
-        if let stored = UserDefaults.standard.string(forKey: "alarmSound_\(alarmId.uuidString)") { return stored }
-        let primaryId = UserDefaults.standard.string(forKey: "alarmBackupPrimary_\(alarmId.uuidString)") ?? alarmId.uuidString
-        return AlarmScheduler.loadAlarms().first { $0.id.uuidString == primaryId }?.sound ?? "Default"
+        AlarmScheduler.resolveFiring(alarmKitId: alarmId.uuidString).sound
     }
 
 

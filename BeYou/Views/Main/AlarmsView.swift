@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Alarm Model
 
@@ -213,7 +214,7 @@ struct AlarmsView: View {
                 onSave: { alarm in
                     alarms.append(alarm)
                     saveAlarms()
-                    AlarmScheduler.sync(alarm)
+                    await AlarmScheduler.syncAwaiting(alarm)   // wait until fully armed on the OS
                     AnalyticsManager.shared.trackAlarmCreated(alarm)
                     showAddAlarm = false
                 },
@@ -223,12 +224,20 @@ struct AlarmsView: View {
         .sheet(item: $editingAlarm) { alarm in
             AddAlarmSheet(
                 existingAlarm: alarm,
-                onSave: { updated in
+                onSave: { edited in
+                    // Editing + saving an alarm is an explicit intent to use it at the new time.
+                    // Re-enable it so a one-time alarm that was auto-disabled after completing its
+                    // mission (disableIfOneTime) actually re-arms — otherwise sync() sees
+                    // isEnabled=false and cancels instead of scheduling, so the edit never rings.
+                    var updated = edited
+                    updated.isEnabled = true
+                    let idTag = String(updated.id.uuidString.suffix(4))
+                    print("⏰ EDIT[\(idTag)]: user saved edit '\(alarm.name)' \(String(format: "%02d:%02d", alarm.hour, alarm.minute)) → '\(updated.name)' \(String(format: "%02d:%02d", updated.hour, updated.minute)) enabled=\(updated.isEnabled) wasEnabled=\(edited.isEnabled)")
                     if let index = alarms.firstIndex(where: { $0.id == updated.id }) {
                         alarms[index] = updated
                         saveAlarms()
                     }
-                    AlarmScheduler.sync(updated)
+                    await AlarmScheduler.syncAwaiting(updated)   // wait until fully armed on the OS
                     AnalyticsManager.shared.trackAlarmEdited(updated)
                     editingAlarm = nil
                 },
@@ -458,8 +467,10 @@ struct AlarmCard: View {
 
 struct AddAlarmSheet: View {
     var existingAlarm: AlarmItem?
-    let onSave: (AlarmItem) -> Void
+    let onSave: (AlarmItem) async -> Void
     let onCancel: () -> Void
+
+    @State private var isSaving = false   // Save shows a spinner + is disabled until fully armed
 
     @State private var name: String = ""
     @State private var selectedTime = Date()
@@ -744,17 +755,24 @@ struct AddAlarmSheet: View {
 
                     Spacer().frame(height: 20)
 
-                    // Save button
+                    // Save button — shows a spinner and blocks until the alarm is fully armed on
+                    // iOS, so killing the app right after Save can't leave it half-scheduled.
                     Button(action: saveAlarm) {
-                        Text(existingAlarm != nil ? "Save Changes" : "Save Alarm")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(name.isEmpty ? Color(hex: "CCCCCC") : Color(hex: "1A1A1A"))
-                            .cornerRadius(16)
+                        Group {
+                            if isSaving {
+                                ProgressView().tint(.white)
+                            } else {
+                                Text(existingAlarm != nil ? "Save Changes" : "Save Alarm")
+                                    .font(.system(size: 17, weight: .semibold))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background((name.isEmpty || isSaving) ? Color(hex: "CCCCCC") : Color(hex: "1A1A1A"))
+                        .cornerRadius(16)
                     }
-                    .disabled(name.isEmpty)
+                    .disabled(name.isEmpty || isSaving)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -833,7 +851,25 @@ struct AddAlarmSheet: View {
         alarm.selectedObjects = selectedMissions.contains("Item Search") ? Array(selectedObjects) : nil
         alarm.sound = selectedSound
         alarm.wakeUpCheckEnabled = wakeUpCheckEnabled
-        onSave(alarm)
+
+        // Show the spinner and hold the sheet open until the alarm is fully armed on iOS. A
+        // failure-only 30s safety net guarantees the spinner can never run forever (on a hang we
+        // just proceed; reconcile heals the rest on next open).
+        isSaving = true
+        Task {
+            // Background-time assertion: if the user backgrounds the app mid-save, iOS would
+            // otherwise suspend us within seconds and freeze scheduling half-done (the "doesn't
+            // ring until I open the app" bug). This asks iOS for extra time to finish the burst.
+            let bgTask = UIApplication.shared.beginBackgroundTask(withName: "AlarmScheduling")
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await onSave(alarm) }
+                group.addTask { try? await Task.sleep(nanoseconds: 30_000_000_000) }
+                await group.next()
+                group.cancelAll()
+            }
+            isSaving = false
+            if bgTask != .invalid { UIApplication.shared.endBackgroundTask(bgTask) }
+        }
     }
 }
 

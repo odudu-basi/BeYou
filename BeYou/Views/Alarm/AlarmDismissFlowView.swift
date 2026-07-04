@@ -126,10 +126,10 @@ struct AlarmDismissFlowView: View {
 
         MissionAlarmAudio.shared.stop()   // mission done → stop the continuous alarm loop
 
-        // Resolve the alarm's sound BEFORE completeMission (it cancels backups, which deletes
-        // the alarmBackupPrimary_ bridge key we need to map a backup back to its primary).
-        let primaryId = UserDefaults.standard.string(forKey: "alarmBackupPrimary_\(alarmId.uuidString)") ?? alarmId.uuidString
-        let sound = AlarmScheduler.loadAlarms().first(where: { $0.id.uuidString == primaryId })?.sound ?? "Default"
+        // Resolve the alarm's sound BEFORE completeMission (it cancels backups + clears the owner
+        // map we'd use to trace a backup to its owner). PHASE 2: single resolver → owner's current
+        // saved-alarm sound, with a legacy-bridge fallback for the wake-up check.
+        let sound = AlarmScheduler.resolveFiring(alarmKitId: alarmId.uuidString).sound
 
         AlarmScheduler.completeMission(firedAlarmId: alarmId)
 

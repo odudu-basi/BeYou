@@ -7,7 +7,7 @@ struct FreeMeditationSession: View {
 
     enum SessionPage {
         case moodCheck
-        case topicPicker
+        case reasonCheck
         case affirmation
         case breathing
         case reflect
@@ -15,7 +15,9 @@ struct FreeMeditationSession: View {
 
     @State private var currentPage: SessionPage = .moodCheck
     @State private var selectedMood: MentalHealthMood?
-    @State private var selectedTopic: String?
+    @State private var selectedReason: MoodReasonOption?
+    /// A fresh random 5 of the mood's 15 reasons, shuffled once when the mood is chosen.
+    @State private var reasonOptions: [MoodReasonOption] = []
     @State private var hasCompletedFirstRound = false
 
     // Affirmations
@@ -83,7 +85,7 @@ struct FreeMeditationSession: View {
 
     private var localAffirmations: [String] {
         let service = AffirmationService.shared
-        let categories = [selectedTopic ?? "Self-love"]
+        let categories = selectedReason?.categories ?? ["Self-love"]
         let data = appState.onboardingData
         let belief = data.religion ?? data.beliefs.first ?? "general"
         return service.getDailyAffirmations(
@@ -143,8 +145,8 @@ struct FreeMeditationSession: View {
                     switch currentPage {
                     case .moodCheck:
                         moodCheckPage
-                    case .topicPicker:
-                        topicPickerPage
+                    case .reasonCheck:
+                        reasonCheckPage
                     case .affirmation:
                         affirmationPage
                     case .breathing:
@@ -213,8 +215,10 @@ struct FreeMeditationSession: View {
             }
 
             Button(action: {
-                if selectedMood != nil {
-                    withAnimation { currentPage = .topicPicker }
+                if let mood = selectedMood {
+                    selectedReason = nil
+                    reasonOptions = MoodReasonLibrary.randomReasons(for: mood, count: 5)
+                    withAnimation { currentPage = .reasonCheck }
                 }
             }) {
                 Text("Next")
@@ -231,9 +235,9 @@ struct FreeMeditationSession: View {
         }
     }
 
-    // MARK: - Topic Picker
+    // MARK: - Reason Check ("why do you feel this way?")
 
-    private var topicPickerPage: some View {
+    private var reasonCheckPage: some View {
         VStack(spacing: 0) {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 32) {
@@ -244,33 +248,36 @@ struct FreeMeditationSession: View {
                         .padding(.top, 40)
 
                     VStack(spacing: 12) {
-                        Text("What would you like")
+                        Text("Why do you feel")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(Color(hex: "1E293B"))
-                        Text("to focus on?")
+                        Text("this way?")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(Color(hex: "1E293B"))
-                        Text("Choose a topic for your meditation")
+                        Text("Pick what fits best right now")
                             .font(.system(size: 16))
                             .foregroundColor(Color(hex: "64748B"))
                             .padding(.top, 8)
                     }
                     .multilineTextAlignment(.center)
 
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        ForEach(topics, id: \.name) { topic in
-                            Button(action: { selectedTopic = topic.name }) {
-                                HStack(spacing: 10) {
-                                    Text(topic.emoji)
-                                        .font(.system(size: 20))
-                                    Text(topic.name)
+                    VStack(spacing: 12) {
+                        ForEach(reasonOptions) { reason in
+                            Button(action: { selectedReason = reason }) {
+                                HStack(spacing: 12) {
+                                    Text(reason.emoji)
+                                        .font(.system(size: 22))
+                                    Text(reason.text)
                                         .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(selectedTopic == topic.name ? .white : Color(hex: "1A1A1A"))
+                                        .foregroundColor(selectedReason == reason ? .white : Color(hex: "1A1A1A"))
+                                        .multilineTextAlignment(.leading)
+                                    Spacer()
                                 }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .frame(minHeight: 56)
+                                .padding(.horizontal, 16)
                                 .background(
-                                    selectedTopic == topic.name
+                                    selectedReason == reason
                                         ? Color(hex: "6C5CE7")
                                         : Color(hex: "F5F5F5")
                                 )
@@ -278,7 +285,7 @@ struct FreeMeditationSession: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
                                         .stroke(
-                                            selectedTopic == topic.name ? Color(hex: "6C5CE7") : Color(hex: "E8E8E8"),
+                                            selectedReason == reason ? Color(hex: "6C5CE7") : Color(hex: "E8E8E8"),
                                             lineWidth: 1
                                         )
                                 )
@@ -291,7 +298,7 @@ struct FreeMeditationSession: View {
             }
 
             Button(action: {
-                if selectedTopic != nil {
+                if selectedReason != nil {
                     ttsService.clearCache()
                     currentAffirmationIndex = 0
                     aiAffirmations = nil
@@ -304,10 +311,10 @@ struct FreeMeditationSession: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(selectedTopic != nil ? Color(hex: "6C5CE7") : Color(hex: "CBD5E1"))
+                    .background(selectedReason != nil ? Color(hex: "6C5CE7") : Color(hex: "CBD5E1"))
                     .cornerRadius(16)
             }
-            .disabled(selectedTopic == nil)
+            .disabled(selectedReason == nil)
             .padding(.horizontal, 24)
             .padding(.bottom, 40)
         }
@@ -505,14 +512,15 @@ struct FreeMeditationSession: View {
 
             VStack(spacing: 12) {
                 Button(action: {
-                    // Go again — back to topic picker
+                    // Go again — back to the reason page with a fresh random 5 for the same mood.
                     hasCompletedFirstRound = true
-                    selectedTopic = nil
+                    selectedReason = nil
+                    reasonOptions = MoodReasonLibrary.randomReasons(for: selectedMood ?? .okay, count: 5)
                     currentAffirmationIndex = 0
                     aiAffirmations = nil
                     affirmationProgress = 0
                     canAdvance = false
-                    withAnimation { currentPage = .topicPicker }
+                    withAnimation { currentPage = .reasonCheck }
                 }) {
                     Text("Go Again")
                         .font(.system(size: 17, weight: .semibold))
@@ -550,7 +558,7 @@ struct FreeMeditationSession: View {
         Task {
             let data = appState.onboardingData
             let mood = selectedMood?.rawValue ?? "Okay"
-            let topic = selectedTopic ?? "Self-love"
+            let topic = selectedReason?.categories.first ?? "Self-love"
             let religion = data.religion ?? data.beliefs.first
 
             let result = await AIAffirmationService.shared.generateMeditationAffirmations(

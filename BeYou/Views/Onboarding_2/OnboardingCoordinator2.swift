@@ -428,29 +428,22 @@ struct OnboardingCoordinator2: View {
                     totalSteps: totalSteps,
                     onNext: { sound in
                         alarmSoundName = sound
-                        withAnimation { currentStep = 24 }
+                        withAnimation { currentStep = 25 }   // skip removed step 24 (rating)
                     },
                     onBack: { withAnimation { currentStep = 22 } }
                 )
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
-            // MARK: 24 - Give us a rating
-            case 24:
-                Onboarding2RatingView(
-                    currentStep: 24,
-                    totalSteps: totalSteps,
-                    onNext: { withAnimation { currentStep = 25 } },
-                    onBack: { withAnimation { currentStep = 23 } }
-                )
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-
             // MARK: 25 - Get out of bed 5x faster
+            // NOTE: the old step 24 "Give us a rating" (+ its requestReview() prompt) was removed.
+            // Step 23 now skips directly to 25, and 25's Back returns to 23. Step 24 is intentionally
+            // vacant; the progress bar is continuous, so the small gap isn't noticeable.
             case 25:
                 Onboarding2FasterView(
                     currentStep: 25,
                     totalSteps: totalSteps,
                     onNext: { withAnimation { currentStep = 26 } },
-                    onBack: { withAnimation { currentStep = 24 } }
+                    onBack: { withAnimation { currentStep = 23 } }   // skip removed step 24 (rating)
                 )
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 

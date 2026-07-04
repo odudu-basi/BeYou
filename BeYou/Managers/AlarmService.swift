@@ -16,9 +16,11 @@ struct BeYouAlarmMetadata: AlarmMetadata {
 struct StopAlarmIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Open BeYou"
     static var description: IntentDescription = "Open BeYou to complete your mission"
-    // Route "slide to stop" through the app instead of silently dismissing the alarm,
-    // so the user still has to complete the mission.
-    static var openAppWhenRun: Bool = true
+    // Route "slide to stop" through the app instead of silently dismissing the alarm, so the user
+    // still has to complete the mission. `supportedModes = .foreground(.immediate)` is the iOS 26
+    // replacement for the deprecated `openAppWhenRun = true` — it reliably foregrounds the app when
+    // the button is tapped (openAppWhenRun is flaky on iOS 26).
+    static var supportedModes: IntentModes = .foreground(.immediate)
 
     @Parameter(title: "Alarm ID", default: "")
     var alarmID: String
@@ -38,7 +40,9 @@ struct OpenMissionIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Start Mission"
     static var description: IntentDescription = "Open BeYou to complete your mission"
     // The orange button opens the app to do the mission (without stopping the alarm).
-    static var openAppWhenRun: Bool = true
+    // `supportedModes = .foreground(.immediate)` is the iOS 26 replacement for the deprecated
+    // `openAppWhenRun = true`, and reliably foregrounds the app when tapped.
+    static var supportedModes: IntentModes = .foreground(.immediate)
 
     @Parameter(title: "Alarm ID", default: "")
     var alarmID: String
@@ -255,6 +259,71 @@ class AlarmService: ObservableObject {
         } catch {
             print("Failed to load alarms: \(error)")
         }
+    }
+
+    /// Tears down an existing registration AND waits until AlarmKit confirms the id is gone
+    /// from the LIVE alarm list before returning. Use before re-scheduling the same id (edits,
+    /// toggles): a plain stop+cancel only *requests* removal — the daemon applies it
+    /// asynchronously, so scheduling immediately after can hit the old alarm (duplicate → edit
+    /// dropped) or let a lagging cancel nuke the freshly-scheduled one (silent). Polling the
+    /// live `manager.alarms` (not the eventually-consistent @Published copy) closes both windows.
+    /// Bounded so it can never hang; on timeout it returns best-effort (backups remain the net).
+    func cancelAndWaitGone(id: Alarm.ID, timeout: TimeInterval = 1.5, tag: String = "----") async {
+        let presentBefore = (try? manager.alarms)?.contains(where: { $0.id == id }) ?? false
+        if !presentBefore {
+            print("⏰ TEARDOWN[\(tag)]: no existing registration — nothing to remove (new alarm or already gone)")
+            return
+        }
+
+        do { try manager.stop(id: id) } catch { print("⏰ TEARDOWN[\(tag)]: stop threw (harmless if not ringing): \(error)") }
+        do { try manager.cancel(id: id) } catch { print("⏰ TEARDOWN[\(tag)]: cancel threw: \(error)") }
+
+        let start = Date()
+        let deadline = start.addingTimeInterval(timeout)
+        var polls = 0
+        while Date() < deadline {
+            let stillThere = (try? manager.alarms)?.contains(where: { $0.id == id }) ?? false
+            if !stillThere {
+                let ms = Int(Date().timeIntervalSince(start) * 1000)
+                print("⏰ TEARDOWN[\(tag)]: confirmed gone after \(ms)ms (\(polls) polls)")
+                loadAlarms()
+                return
+            }
+            polls += 1
+            try? await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        }
+        // Timed out: the daemon never confirmed removal. Scheduling proceeds best-effort, but
+        // this is the line to look for if an edit silently fails to ring (duplicate-id risk).
+        print("⏰ TEARDOWN[\(tag)]: ⚠️ TIMED OUT after \(Int(timeout * 1000))ms (\(polls) polls) — id STILL present; rescheduling anyway, edit may not land")
+        loadAlarms()
+    }
+
+    /// Whether the given id is currently in the LIVE OS alarm list (not the @Published cache).
+    /// Used to verify a (re)schedule actually landed.
+    func isRegistered(id: Alarm.ID) -> Bool {
+        (try? manager.alarms)?.contains(where: { $0.id == id }) ?? false
+    }
+
+    /// UUIDs of every alarm currently on the OS books, read LIVE. Lets the scheduler reconcile
+    /// against the real list without importing AlarmKit types. Falls back to the cached list.
+    var scheduledAlarmIds: [UUID] {
+        ((try? manager.alarms) ?? alarms).map(\.id)
+    }
+
+    /// Waits until EVERY given id is present in the LIVE OS alarm list, or `timeout` elapses.
+    /// Returns whether all landed. Used by the save flow to hold a spinner until an alarm's whole
+    /// burst is really scheduled — the timeout is a failure-only safety net so a hang can't freeze
+    /// the UI (on timeout the caller dismisses anyway; reconcile heals the rest on next open).
+    func awaitRegistered(ids: [UUID], timeout: TimeInterval = 30) async -> Bool {
+        guard !ids.isEmpty else { return true }
+        let want = Set(ids)
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let have = Set(((try? manager.alarms) ?? []).map(\.id))
+            if want.isSubset(of: have) { return true }
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        }
+        return false
     }
 
     private func observeAlarms() {
