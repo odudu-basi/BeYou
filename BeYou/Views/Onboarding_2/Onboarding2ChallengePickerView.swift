@@ -18,6 +18,8 @@ struct Onboarding2ChallengePickerView: View {
         ("Make Your Bed", "bed.double.fill", "Take a photo of your made bed"),
         ("Solve Math", "function", "Solve math problems to wake your brain up"),
         ("Touch Grass", "leaf.fill", "Go outside and take a photo of nature"),
+        ("Push Ups", "figure.core.training", "Do push-ups facing the camera"),
+        ("Squats", "figure.cross.training", "Do squats facing the camera"),
     ]
 
     var body: some View {
@@ -44,8 +46,7 @@ struct Onboarding2ChallengePickerView: View {
                         }
                     }) {
                         HStack(spacing: 14) {
-                            Image(systemName: challenge.icon)
-                                .font(.system(size: 18))
+                            MissionIcon(mission: challenge.name, systemName: challenge.icon, size: 18, twoTone: true)
                                 .foregroundColor(.white)
                                 .frame(width: 36, height: 36)
                                 .background(Color(hex: AlarmItem.colorHex(for: challenge.name)))

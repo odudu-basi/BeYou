@@ -60,8 +60,7 @@ struct Onboarding2MissionInfoView: View {
                 RoundedRectangle(cornerRadius: 24)
                     .fill(info.tint.opacity(0.15))
                     .frame(width: 160, height: 160)
-                Image(systemName: info.icon)
-                    .font(.system(size: 64))
+                MissionIcon(mission: mission, systemName: info.icon, size: 64)
                     .foregroundColor(info.tint)
             }
         }
@@ -108,6 +107,22 @@ struct Onboarding2MissionInfoView: View {
                 body: "When you're groggy, your prefrontal cortex — the focus-and-logic part of your brain — is still offline. Solving a few problems forces it awake, and once it's engaged you can't drift back to sleep.",
                 icon: "function",
                 tint: Color(hex: "3B82F6")
+            )
+        case "Push Ups":
+            return MissionInfo(
+                title: "Why push-ups wake you up",
+                tagline: "Get your blood pumping instantly.",
+                body: "Dropping down for a few push-ups spikes your heart rate and floods your muscles with oxygen — it's physically impossible to stay sleepy. A few reps and the grogginess is gone.",
+                icon: "figure.core.training",
+                tint: Color(hex: "FF7043")
+            )
+        case "Squats":
+            return MissionInfo(
+                title: "Why squats wake you up",
+                tagline: "Big muscles, big wake-up.",
+                body: "Squats fire up your legs — the largest muscles in your body — sending a rush of blood and adrenaline through you. Standing up and moving beats snoozing every single time.",
+                icon: "figure.cross.training",
+                tint: Color(hex: "8D6E63")
             )
         default: // Item Search
             return MissionInfo(

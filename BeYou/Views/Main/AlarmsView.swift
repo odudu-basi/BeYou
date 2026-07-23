@@ -14,6 +14,7 @@ struct AlarmItem: Codable, Identifiable {
     var mission: String = "Item Search"
     var secondMission: String? = nil   // optional 2nd mission to complete in sequence
     var selectedObjects: [String]? = nil   // items for the Item Search mission
+    var exerciseSeconds: Int? = nil        // duration for exercise missions (Push Ups / Squats)
     var sound: String = "Default"
     var wakeUpCheckEnabled: Bool = false
 
@@ -52,7 +53,11 @@ struct AlarmItem: Codable, Identifiable {
     var missionColorHex: String { AlarmItem.colorHex(for: mission) }
 
     /// All available wake-up missions (display order).
-    static let allMissions = ["Item Search", "Picture of Sky", "Make Your Bed", "Solve Math", "Touch Grass"]
+    static let allMissions = ["Item Search", "Picture of Sky", "Make Your Bed", "Solve Math", "Touch Grass", "Push Ups", "Squats"]
+
+    /// Camera-based exercise missions: record a short video, verified by AI.
+    static let exerciseMissions: Set<String> = ["Push Ups", "Squats"]
+    static func isExercise(_ mission: String) -> Bool { exerciseMissions.contains(mission) }
 
     static func iconName(for mission: String) -> String {
         switch mission {
@@ -61,6 +66,8 @@ struct AlarmItem: Codable, Identifiable {
         case "Make Your Bed": return "bed.double.fill"
         case "Solve Math": return "function"
         case "Touch Grass": return "leaf.fill"
+        case "Push Ups": return "figure.core.training"
+        case "Squats": return "figure.cross.training"
         default: return "camera.viewfinder"
         }
     }
@@ -72,6 +79,8 @@ struct AlarmItem: Codable, Identifiable {
         case "Make Your Bed": return "6C5CE7"    // purple
         case "Solve Math": return "EF4444"       // red
         case "Touch Grass": return "27AE60"      // green
+        case "Push Ups": return "FF7043"         // deep orange
+        case "Squats": return "8D6E63"           // brown
         default: return "3B82F6"
         }
     }
@@ -437,8 +446,7 @@ struct AlarmCard: View {
                         .foregroundColor(Color(hex: "CCCCCC"))
 
                     ForEach(alarm.missionList, id: \.self) { m in
-                        Image(systemName: AlarmItem.iconName(for: m))
-                            .font(.system(size: 12))
+                        MissionIcon(mission: m, systemName: AlarmItem.iconName(for: m), size: 12)
                             .foregroundColor(alarm.isEnabled ? Color(hex: AlarmItem.colorHex(for: m)) : Color(hex: "BBBBBB"))
                     }
 
@@ -478,6 +486,7 @@ struct AddAlarmSheet: View {
     @State private var repeatDays: Set<Int> = Set(0...4)
     @State private var selectedMissions: [String] = ["Item Search"]   // up to 2, in order
     @State private var selectedObjects: Set<String> = Set(AlarmItem.defaultObjects)
+    @State private var exerciseSeconds: Int = 15   // Push Ups / Squats recording duration
     @State private var selectedSound: String = "Default"
     @State private var wakeUpCheckEnabled: Bool = false
     @State private var showMissionPicker = false
@@ -597,8 +606,7 @@ struct AddAlarmSheet: View {
                         HStack(spacing: 12) {
                             HStack(spacing: 4) {
                                 ForEach(selectedMissions, id: \.self) { m in
-                                    Image(systemName: AlarmItem.iconName(for: m))
-                                        .font(.system(size: 18))
+                                    MissionIcon(mission: m, systemName: AlarmItem.iconName(for: m), size: 18)
                                         .foregroundColor(Color(hex: AlarmItem.colorHex(for: m)))
                                 }
                             }
@@ -625,6 +633,47 @@ struct AddAlarmSheet: View {
                         .cornerRadius(14)
                     }
                     .buttonStyle(HapticButtonStyle())
+
+                    // Exercise duration (Push Ups / Squats) — how long to record.
+                    if selectedMissions.contains(where: AlarmItem.isExercise) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "timer")
+                                .font(.system(size: 18))
+                                .foregroundColor(Color(hex: "FF7043"))
+                                .frame(minWidth: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Exercise Duration")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(Color(hex: "1A1A1A"))
+                                Text("Record yourself for this long")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(hex: "999999"))
+                            }
+
+                            Spacer()
+
+                            HStack(spacing: 14) {
+                                Button(action: { exerciseSeconds = max(5, exerciseSeconds - 5) }) {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.system(size: 26))
+                                        .foregroundColor(Color(hex: exerciseSeconds > 5 ? "1A1A1A" : "CCCCCC"))
+                                }
+                                Text("\(exerciseSeconds)s")
+                                    .font(.system(size: 17, weight: .bold))
+                                    .foregroundColor(Color(hex: "1A1A1A"))
+                                    .frame(minWidth: 42)
+                                Button(action: { exerciseSeconds = min(60, exerciseSeconds + 5) }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 26))
+                                        .foregroundColor(Color(hex: exerciseSeconds < 60 ? "1A1A1A" : "CCCCCC"))
+                                }
+                            }
+                        }
+                        .padding(16)
+                        .background(Color(hex: "F0F0F0"))
+                        .cornerRadius(14)
+                    }
 
                     // Selected objects (only for Item Search)
                     if selectedMissions.contains("Item Search") {
@@ -822,6 +871,7 @@ struct AddAlarmSheet: View {
                 repeatDays = existing.repeatDays
                 selectedMissions = existing.missionList
                 selectedObjects = Set(existing.selectedObjects ?? AlarmItem.defaultObjects)
+                exerciseSeconds = existing.exerciseSeconds ?? 15
                 selectedSound = existing.sound
                 wakeUpCheckEnabled = existing.wakeUpCheckEnabled
                 let calendar = Calendar.current
@@ -849,6 +899,7 @@ struct AddAlarmSheet: View {
         alarm.mission = selectedMissions.first ?? "Item Search"
         alarm.secondMission = selectedMissions.count > 1 ? selectedMissions[1] : nil
         alarm.selectedObjects = selectedMissions.contains("Item Search") ? Array(selectedObjects) : nil
+        alarm.exerciseSeconds = selectedMissions.contains(where: AlarmItem.isExercise) ? exerciseSeconds : nil
         alarm.sound = selectedSound
         alarm.wakeUpCheckEnabled = wakeUpCheckEnabled
 
@@ -1001,7 +1052,7 @@ struct MissionPickerSheet: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 10) {
                 Text("Pick 1 mission — or add a 2nd to do back-to-back.")
                     .font(.system(size: 13))
@@ -1013,8 +1064,7 @@ struct MissionPickerSheet: View {
                     let order = (selectedMissions.firstIndex(of: mission)).map { $0 + 1 }
                     Button(action: { toggle(mission) }) {
                         HStack(spacing: 14) {
-                            Image(systemName: AlarmItem.iconName(for: mission))
-                                .font(.system(size: 18))
+                            MissionIcon(mission: mission, systemName: AlarmItem.iconName(for: mission), size: 18, twoTone: true)
                                 .foregroundColor(.white)
                                 .frame(width: 36, height: 36)
                                 .background(Color(hex: AlarmItem.colorHex(for: mission)))
@@ -1065,7 +1115,8 @@ struct MissionPickerSheet: View {
                 }
             }
         }
-        .navigationViewStyle(.stack)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -1101,7 +1152,7 @@ struct SoundPickerSheet: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 8) {
                     ForEach(sounds, id: \.self) { sound in
@@ -1161,6 +1212,7 @@ struct SoundPickerSheet: View {
             }
             .onDisappear { preview.stop() }
         }
-        .navigationViewStyle(.stack)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 }

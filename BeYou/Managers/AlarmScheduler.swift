@@ -245,6 +245,7 @@ enum AlarmScheduler {
         var items: [String]
         var sound: String
         var ownerAlarmId: String
+        var exerciseSeconds: Int = 15
     }
 
     /// Turns a fired AlarmKit id (primary, backup, or wake-up check) into the mission list, items,
@@ -260,7 +261,8 @@ enum AlarmScheduler {
                 missions: alarm.missionList,
                 items: alarm.selectedObjects ?? [],
                 sound: alarm.sound,
-                ownerAlarmId: owner
+                ownerAlarmId: owner,
+                exerciseSeconds: alarm.exerciseSeconds ?? 15
             )
         }
         // Fallback: wake-up check / pre-migration leftover → legacy bridges (mirrors old logic).

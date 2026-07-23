@@ -9,7 +9,9 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
 
     @Published var isProUser: Bool = false
     @Published var customerInfo: RevenueCat.CustomerInfo?
-    private var hasCompletedInitialSync = false
+    /// False until RevenueCat has resolved entitlements at least once. The reactive gate uses this
+    /// so it never flashes the paywall at a real subscriber before their status is known on launch.
+    @Published private(set) var hasResolvedEntitlements = false
 
     /// RevenueCat anonymous user ID — stable across sessions, persists until app delete
     var revenueCatUserId: String {
@@ -84,8 +86,8 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
             productId: info.entitlements["BeYou_Pro"]?.productIdentifier
         )
 
-        if !hasCompletedInitialSync {
-            hasCompletedInitialSync = true
+        if !hasResolvedEntitlements {
+            hasResolvedEntitlements = true
             print("💰 SUBS: Initial sync — isProUser: \(isProUser), rcId: \(rcId)")
         } else if !wasProUser && isProUser {
             print("💰 SUBS: User became Pro")

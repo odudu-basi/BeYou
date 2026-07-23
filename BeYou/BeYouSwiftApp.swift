@@ -9,8 +9,6 @@ struct BeYouSwiftApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var screenTimeManager = ScreenTimeManager()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @State private var showExpiredPaywall = false
-    @State private var hasCompletedInitialPaywallCheck = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -38,17 +36,12 @@ struct BeYouSwiftApp: App {
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
-                .onChange(of: showExpiredPaywall) { shouldShow in
-                    if shouldShow {
-                        showExpiredPaywallFlow()
-                    }
-                }
-                // Re-check subscription when app returns to foreground (not on initial launch)
+                // Refresh entitlements on foreground so the reactive subscription gate reflects a
+                // lapse/renewal promptly. The gate itself (ContentView) decides whether to show
+                // the paywall — there is no separate paywall trigger here anymore.
                 .onChange(of: scenePhase) { newPhase in
-                    if newPhase == .active && hasCompletedInitialPaywallCheck {
-                        Task {
-                            await showPaywallIfExpired()
-                        }
+                    if newPhase == .active {
+                        Task { await SubscriptionManager.shared.refreshEntitlements() }
                     }
                 }
                 .task {
@@ -63,9 +56,8 @@ struct BeYouSwiftApp: App {
                     // Check daily reset
                     appState.checkDailyReset()
 
-                    // Re-show paywall if subscription expired (existing users only)
-                    await showPaywallIfExpired()
-                    hasCompletedInitialPaywallCheck = true
+                    // Refresh entitlements so the reactive subscription gate has current status.
+                    await SubscriptionManager.shared.refreshEntitlements()
 
                     // Sync remote affirmations from Supabase (daily, silent fail if offline)
                     await AffirmationService.shared.syncRemoteAffirmations()
@@ -113,55 +105,6 @@ struct BeYouSwiftApp: App {
 
         default:
             print("🔗 DEEP LINK: ❌ Unknown host: \(url.host ?? "nil")")
-        }
-    }
-
-    private func showExpiredPaywallFlow() {
-        let handler = PaywallPresentationHandler()
-        handler.onPresent { paywallInfo in
-            AnalyticsManager.shared.trackPaywallShown(placement: "subscription_expired")
-        }
-        handler.onDismiss { _, result in
-            AnalyticsManager.shared.trackPaywallDismissed(
-                placement: "subscription_expired",
-                result: paywallResultName(result)
-            )
-            switch result {
-            case .purchased, .restored:
-                showExpiredPaywall = false
-            default:
-                // Declined — re-show paywall
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    showExpiredPaywallFlow()
-                }
-            }
-        }
-        handler.onSkip { _ in
-            if SubscriptionManager.shared.isProUser {
-                showExpiredPaywall = false
-            } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    showExpiredPaywallFlow()
-                }
-            }
-        }
-        Superwall.shared.register(placement: "onboarding_paywall", handler: handler) {
-            // Feature block — user purchased
-            showExpiredPaywall = false
-        }
-    }
-
-    private func showPaywallIfExpired() async {
-        // Only for users who have completed onboarding (at minimum)
-        guard SharedDataManager.shared.loadHasCompletedOnboarding() else { return }
-
-        // Refresh entitlements to get latest status (waits for RevenueCat)
-        await SubscriptionManager.shared.refreshEntitlements()
-
-        // If not a pro user, show the paywall
-        if !SubscriptionManager.shared.isProUser {
-            print("💰 APP: Subscription inactive/expired — showing paywall")
-            showExpiredPaywall = true
         }
     }
 

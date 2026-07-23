@@ -146,7 +146,7 @@ struct WidgetTheme {
 
 extension WidgetDataProvider {
     static func loadSelectedThemeId() -> String {
-        sharedDefaults?.string(forKey: "selectedMotivationTheme") ?? "starry-mountains"
+        sharedDefaults?.string(forKey: "selectedMotivationTheme") ?? "ocean-gradient"
     }
 
     static func resolveTheme(id: String) -> WidgetTheme {
@@ -185,6 +185,6 @@ extension WidgetDataProvider {
             WidgetTheme(id: "cotton-candy", type: "gradient", background: "E8D4E0", gradientEnd: "D4C4E8", textColor: "3D2E3A", accentColor: "7B5C6E"),
         ]
 
-        return allThemes.first(where: { $0.id == id }) ?? allThemes[4] // default: starry-mountains
+        return allThemes.first(where: { $0.id == id }) ?? allThemes[14] // default: ocean-gradient
     }
 }

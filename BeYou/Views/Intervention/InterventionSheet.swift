@@ -26,7 +26,7 @@ struct InterventionSheet: View {
     @State private var showVoicePicker = false
     @State private var isAudioEnabled = false
     @StateObject private var ttsService = TTSService.shared
-    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "starry-mountains"
+    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "ocean-gradient"
     @AppStorage("selectedAffirmationCategories") private var selectedCategoriesData: Data = Data()
     @AppStorage("interventionAffirmationCount") private var interventionCount: Int = 3
     @AppStorage("selectedVoiceId") private var selectedVoiceId: String = "uIZsnBL0YK1S5j69bAih"

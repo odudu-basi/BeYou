@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- ground: faded so it reads as a second tone (peach on the orange circle) -->
+  <line x1="14" y1="82" x2="86" y2="82" stroke="#FFFFFF" stroke-opacity="0.45"
+        stroke-width="9" stroke-linecap="round"/>
+  <!-- figure: legs (diagonal) + arms (vertical) meeting at the raised hips, plus the head -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="16" y1="82" x2="60" y2="42"/>
+    <line x1="60" y1="42" x2="63" y2="82"/>
+  </g>
+  <circle cx="73" cy="31" r="8.5" fill="#FFFFFF"/>
+</svg>

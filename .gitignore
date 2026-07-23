@@ -30,3 +30,7 @@ BeYou/supabase/supabase/
 
 # Claude
 .claude/
+
+# Superwall skills tooling (installed via npx, not app code)
+.agents/
+skills-lock.json

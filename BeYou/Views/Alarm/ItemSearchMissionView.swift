@@ -290,7 +290,9 @@ struct ItemSearchMissionView: View {
             }
             capturedImage = image
             Task {
+                let analysisStart = Date()
                 let result = await MissionPhotoVerifier.verify(image: image, mission: "Item Search", target: selectedItem)
+                await MissionAnalyzing.holdFloor(since: analysisStart)
                 await MainActor.run {
                     verifyAttempts += 1
                     if result.pass {

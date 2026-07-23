@@ -9,7 +9,7 @@ struct AlarmHomeView: View {
     @State private var showAddAlarm = false
     @State private var showSettings = false
     @State private var showAffirmationDetail = false
-    @AppStorage("selectedMotivationTheme") private var affirmationThemeId: String = "starry-mountains"
+    @AppStorage("selectedMotivationTheme") private var affirmationThemeId: String = "ocean-gradient"
     @AppStorage("selectedAffirmationCategories") private var selectedCategoriesData: Data = Data()
 
     // Direct mission / sound editing from the home cards
@@ -26,6 +26,7 @@ struct AlarmHomeView: View {
     /// Ticks forward so the next-alarm choice + countdown stay live as time passes.
     @State private var now = Date()
     @State private var streakCount: Int = 0
+    @State private var showStreakCalendar = false
     @Environment(\.scenePhase) private var scenePhase
 
     private var userName: String {
@@ -125,7 +126,9 @@ struct AlarmHomeView: View {
                             alarms[index] = updated
                         }
                         AlarmScheduler.saveAlarms(alarms)
-                        AlarmScheduler.sync(updated)
+                        // Wait until fully armed on the OS + the ~5s minimum spinner floor, matching
+                        // the Alarm tab's edit path (was a fire-and-forget sync() with no floor).
+                        await AlarmScheduler.syncAwaiting(updated)
                         AnalyticsManager.shared.trackAlarmEdited(updated)
                         editingAlarm = nil
                     },
@@ -147,6 +150,9 @@ struct AlarmHomeView: View {
             .fullScreenCover(isPresented: $showAffirmationDetail) {
                 TodayAffirmationDetailView()
                     .environmentObject(appState)
+            }
+            .sheet(isPresented: $showStreakCalendar) {
+                StreakCalendarView(completedDays: AlarmCompletionStore.load())
             }
             .sheet(isPresented: $showMissionPicker, onDismiss: persistMissionEdit) {
                 MissionPickerSheet(
@@ -193,7 +199,7 @@ struct AlarmHomeView: View {
 
             Spacer()
 
-            // Day streak
+            // Day streak — tap to see streak history
             HStack(spacing: 5) {
                 Text("🔥")
                     .font(.system(size: 18))
@@ -205,6 +211,11 @@ struct AlarmHomeView: View {
             .frame(height: 40)
             .background(Color(hex: "EEEEEE"))
             .clipShape(Capsule())
+            .contentShape(Capsule())
+            .onTapGesture {
+                Haptics.tap()
+                showStreakCalendar = true
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 8)
@@ -335,74 +346,59 @@ struct AlarmHomeView: View {
     // MARK: - Mission Card
 
     private func missionCard(_ alarm: AlarmItem) -> some View {
-        Button(action: {
-            pickerAlarmId = alarm.id
-            editMissions = alarm.missionList
-            showMissionPicker = true
-        }) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(alarm.missionList.joined(separator: " + "))
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(Color(hex: "1A1A1A"))
-                    .lineLimit(2)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(alarm.missionList.joined(separator: " + "))
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(Color(hex: "1A1A1A"))
+                .lineLimit(2)
 
-                Text(alarm.missionList.count > 1 ? "Missions" : "Mission")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(Color(hex: "999999"))
+            Text(alarm.missionList.count > 1 ? "Missions" : "Mission")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color(hex: "999999"))
 
+            Spacer()
+
+            HStack(spacing: 8) {
                 Spacer()
-
-                HStack(spacing: 8) {
-                    Spacer()
-                    ForEach(alarm.missionList, id: \.self) { m in
-                        Image(systemName: AlarmItem.iconName(for: m))
-                            .font(.system(size: 24))
-                            .foregroundColor(Color(hex: AlarmItem.colorHex(for: m)))
-                    }
+                ForEach(alarm.missionList, id: \.self) { m in
+                    MissionIcon(mission: m, systemName: AlarmItem.iconName(for: m), size: 24)
+                        .foregroundColor(Color(hex: AlarmItem.colorHex(for: m)))
                 }
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
         }
-        .buttonStyle(HapticButtonStyle())
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
     }
 
     // MARK: - Sound Card
 
     private func soundCard(_ alarm: AlarmItem) -> some View {
-        Button(action: {
-            pickerAlarmId = alarm.id
-            editSound = alarm.sound
-            showSoundPicker = true
-        }) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(alarm.sound)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(Color(hex: "1A1A1A"))
+        VStack(alignment: .leading, spacing: 8) {
+            Text(alarm.sound)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(Color(hex: "1A1A1A"))
 
-                Text("Sound")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(Color(hex: "999999"))
+            Text("Sound")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color(hex: "999999"))
 
+            Spacer()
+
+            HStack {
                 Spacer()
-
-                HStack {
-                    Spacer()
-                    Image(systemName: "bell.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(Color(hex: "6C5CE7"))
-                }
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(hex: "6C5CE7"))
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-            .background(Color.white)
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
         }
-        .buttonStyle(HapticButtonStyle())
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .background(Color.white)
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
     }
 
     // MARK: - Direct Mission / Sound Editing

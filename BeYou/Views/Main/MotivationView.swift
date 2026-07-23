@@ -86,7 +86,7 @@ struct MotivationView: View {
     private enum SwipeDirection {
         case up, down
     }
-    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "starry-mountains"
+    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "ocean-gradient"
     @AppStorage("selectedAffirmationCategories") private var selectedCategoriesData: Data = Data()
     @AppStorage("hasInitializedCategories") private var hasInitializedCategories: Bool = false
     @AppStorage("favoriteAffirmations") private var favoriteAffirmationsData: Data = Data()

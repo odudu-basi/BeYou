@@ -11,6 +11,10 @@ struct MainAppView: View {
     @State private var showWriteReviewSheet = false
     @State private var showAlarmMission = false
     @State private var alertingAlarmId: UUID?
+    /// True once the current alarm's mission is recorded complete. While the dismiss flow is still
+    /// on screen (completion + affirmation screens), this stops the foreground handler from
+    /// re-arming the alarm audio for an alarm that's already finished. Reset when a new mission opens.
+    @State private var missionCompleted = false
     @AppStorage("completedInterventionCount") private var completedInterventionCount: Int = 0
     @AppStorage("hasWrittenReview") private var hasWrittenReview: Bool = false
     @AppStorage("nextWriteReviewAt") private var nextWriteReviewAt: Int = 3
@@ -67,11 +71,16 @@ struct MainAppView: View {
                     alarmName: "Alarm",
                     missions: resolved.missions.isEmpty ? ["Item Search"] : resolved.missions,
                     selectedItems: resolved.items,
+                    exerciseSeconds: resolved.exerciseSeconds,
                     onDismissed: {
                         showAlarmMission = false
                         alertingAlarmId = nil
+                    },
+                    onCompleted: {
+                        missionCompleted = true
                     }
                 )
+                .environmentObject(appState)   // so the post-alarm affirmation card has appState
             }
         }
         .onChange(of: scenePhase) { newPhase in
@@ -84,8 +93,11 @@ struct MainAppView: View {
                 checkForWriteReviewPrompt()
                 checkForAlertingAlarm()
                 checkForPendingMission()
-                // Returning to a mission in progress → resume the gapless loop.
-                if showAlarmMission, let id = alertingAlarmId {
+                // Returning to a mission STILL IN PROGRESS → resume the gapless loop. Skip once the
+                // mission is complete: the completion/affirmation screens keep the flow (and
+                // showAlarmMission) up, but the alarm is already off — re-arming it here would
+                // replay a finished alarm and, on rapid background/foreground, crash the audio session.
+                if showAlarmMission, !missionCompleted, let id = alertingAlarmId {
                     MissionAlarmAudio.shared.start(sound: soundForAlarm(id)) {
                         if #available(iOS 26.1, *) { AlarmService.shared.stopAlarm(id: id) }
                     }
@@ -106,6 +118,9 @@ struct MainAppView: View {
         }
         .onChange(of: showAlarmMission) { showing in
             if showing {
+                // Fresh mission opening → clear the completed flag so the foreground handler will
+                // resume the loop while THIS mission is in progress.
+                missionCompleted = false
                 // Play the alarm on a continuous loop for the whole mission (gapless). The system
                 // alarm is silenced ONLY once the loop is confirmed playing (in onStarted), so a
                 // failed audio-session start can never leave us in silence — the alarm keeps

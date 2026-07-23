@@ -24,7 +24,7 @@ struct FreeMeditationSession: View {
     @State private var currentAffirmationIndex: Int = 0
     @State private var aiAffirmations: [String]?
     @State private var isLoadingAffirmations = false
-    private let sessionAffirmationCount = 10
+    private let sessionAffirmationCount = 5
 
     // Progress bar
     @State private var affirmationProgress: CGFloat = 0
@@ -45,7 +45,7 @@ struct FreeMeditationSession: View {
     @State private var showVoicePicker = false
 
     // Theme
-    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "starry-mountains"
+    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "ocean-gradient"
     @State private var showThemePicker = false
     @AppStorage("selectedAffirmationCategories") private var selectedCategoriesData: Data = Data()
 

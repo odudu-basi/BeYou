@@ -48,7 +48,7 @@ struct AppBlockInterventionSheet: View {
     @State private var showVoicePicker = false
 
     // Theme
-    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "starry-mountains"
+    @AppStorage("selectedMotivationTheme") private var selectedThemeId: String = "ocean-gradient"
     @State private var showThemePicker = false
 
     private var currentTheme: MotivationTheme {

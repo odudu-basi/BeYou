@@ -44,3 +44,19 @@ struct AnalyzingOverlay: View {
         .onAppear { animate = true }
     }
 }
+
+/// Enforces a minimum on-screen time for the "Analyzing…" overlay. The AI verdict can come back
+/// almost instantly, which makes the check feel fake (a flash). Call `holdFloor(since:)` right
+/// after the verifier returns and before hiding the overlay so a fast result still reads as a
+/// real analysis. Same "floor" idea as the alarm-save spinner.
+enum MissionAnalyzing {
+    static let minimumDuration: TimeInterval = 4
+
+    /// Sleeps just long enough that the total elapsed time since `start` reaches `minimumDuration`.
+    static func holdFloor(since start: Date) async {
+        let elapsed = Date().timeIntervalSince(start)
+        if elapsed < minimumDuration {
+            try? await Task.sleep(nanoseconds: UInt64((minimumDuration - elapsed) * 1_000_000_000))
+        }
+    }
+}

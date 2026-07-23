@@ -23,6 +23,10 @@ struct InsightsView: View {
     @AppStorage("showMorningMemories") private var showMorningMemories: Bool = true
     @State private var memories: [MorningMemory] = []
     @State private var selectedMemory: MorningMemory?
+    @State private var showAllMemories = false
+
+    /// Latest memories shown in the Insights preview (5 rows × 3 columns). Tap any → full gallery.
+    private let memoryPreviewCount = 15
     @State private var showStreakCalendar = false
     @State private var streakCount: Int = 0
     @State private var streakDays: [Bool] = Array(repeating: false, count: 7) // S M T W T F S
@@ -231,7 +235,7 @@ struct InsightsView: View {
 
                                 VStack(spacing: 0) {
                                     LazyVGrid(columns: columns, spacing: 4) {
-                                        ForEach(memories) { memory in
+                                        ForEach(memories.prefix(memoryPreviewCount)) { memory in
                                             ZStack(alignment: .bottomLeading) {
                                                 if let uiImage = UIImage(data: memory.imageData) {
                                                     Image(uiImage: uiImage)
@@ -256,8 +260,7 @@ struct InsightsView: View {
                                             .contentShape(RoundedRectangle(cornerRadius: 12))
                                             .onTapGesture {
                                                 Haptics.tap()
-                                                AnalyticsManager.shared.trackMemoryViewed(mission: memory.missionName)
-                                                selectedMemory = memory
+                                                showAllMemories = true   // open the full gallery
                                             }
                                             .contextMenu {
                                                 Button(role: .destructive) {
@@ -305,6 +308,9 @@ struct InsightsView: View {
                 selectedMemory = nil
             }
         }
+        .fullScreenCover(isPresented: $showAllMemories) {
+            AllMemoriesView(memories: $memories, save: saveMemories)
+        }
         .sheet(isPresented: $showStreakCalendar) {
             StreakCalendarView(completedDays: AlarmCompletionStore.load())
         }
@@ -335,9 +341,16 @@ struct InsightsView: View {
     // MARK: - Persistence
 
     private func loadMemories() {
-        if let data = UserDefaults.standard.data(forKey: "morningMemories"),
-           let decoded = try? JSONDecoder().decode([MorningMemory].self, from: data) {
-            memories = decoded
+        // Decode the (potentially large) memory blob OFF the main thread so opening the Insights
+        // tab is instant; the photos populate a beat later. Same data, same decode — just not
+        // blocking the UI. (This is what caused the tab-open hitch.)
+        Task {
+            let decoded = await Task.detached(priority: .userInitiated) { () -> [MorningMemory] in
+                guard let data = UserDefaults.standard.data(forKey: "morningMemories"),
+                      let d = try? JSONDecoder().decode([MorningMemory].self, from: data) else { return [] }
+                return d
+            }.value
+            memories = decoded   // back on the main actor
         }
     }
 

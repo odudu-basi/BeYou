@@ -5,12 +5,18 @@ struct AlarmDismissFlowView: View {
     let alarmName: String
     let missions: [String]          // one or two missions, completed in order
     let selectedItems: [String]
+    var exerciseSeconds: Int = 15   // recording duration for Push Ups / Squats
     let onDismissed: () -> Void
+    /// Fired the moment the mission is recorded complete (before the completion/affirmation
+    /// screens). The host uses this to stop re-arming the alarm audio when the app is
+    /// foregrounded on those post-completion screens.
+    var onCompleted: (() -> Void)? = nil
 
     @State private var didRecord = false
     @State private var showIntro = true
     @State private var currentIndex = 0
     @State private var showCompletion = false
+    @State private var showAffirmation = false   // post-completion "Today's Affirmation" screen
     @State private var startTime = Date()
     /// When the alarm flow first appeared (≈ alarm fired). Not reset, so it measures
     /// the full response time from the start of the alarm to mission completion.
@@ -37,6 +43,8 @@ struct AlarmDismissFlowView: View {
             }
             .transition(.opacity)
             .onAppear { trackFiredOnce() }
+        } else if showAffirmation {
+            affirmationView
         } else if showCompletion {
             completionView
         } else {
@@ -94,6 +102,12 @@ struct AlarmDismissFlowView: View {
             )
         case "Solve Math":
             SolveMathMissionView(onMissionComplete: advanceOrComplete)
+        case "Push Ups", "Squats":
+            ExerciseMissionView(
+                exercise: mission,
+                seconds: exerciseSeconds,
+                onMissionComplete: advanceOrComplete
+            )
         case "Type Word":
             TypeWordMissionView(word: selectedItems.first ?? "Morning", onMissionComplete: advanceOrComplete)
         default:
@@ -132,6 +146,11 @@ struct AlarmDismissFlowView: View {
         let sound = AlarmScheduler.resolveFiring(alarmKitId: alarmId.uuidString).sound
 
         AlarmScheduler.completeMission(firedAlarmId: alarmId)
+
+        // Tell the host the mission is done so it stops re-arming the alarm audio when the app is
+        // foregrounded on the completion/affirmation screens (that restart path could otherwise
+        // replay a finished alarm and, on rapid background/foreground, crash the audio session).
+        onCompleted?()
 
         // Freeze the time-to-complete (alarm start → now) for the completion screen.
         completedElapsed = Date().timeIntervalSince(firedAt)
@@ -214,7 +233,7 @@ struct AlarmDismissFlowView: View {
 
             Spacer()
 
-            Button(action: onDismissed) {
+            Button(action: { withAnimation { showAffirmation = true } }) {
                 Text("Continue")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.white)
@@ -228,6 +247,45 @@ struct AlarmDismissFlowView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: "F8F8F8").ignoresSafeArea())
+    }
+
+    // MARK: - Post-completion affirmation screen
+
+    /// Shown after the completion screen's "Continue": today's affirmation card (same card + tap
+    /// flow as the Home tab), then "Start My Day" returns to the home page.
+    private var affirmationView: some View {
+        VStack(spacing: 20) {
+            Text("BeYou")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(Color(hex: "1A1A1A"))
+                .padding(.top, 20)
+
+            Spacer()
+
+            Text("Today's Affirmation")
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(Color(hex: "1A1A1A"))
+
+            TodayAffirmationCard()
+                .padding(.horizontal, 24)
+
+            Spacer()
+
+            Button(action: onDismissed) {
+                Text("Start My Day")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color(hex: "1A1A1A"))
+                    .cornerRadius(16)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 36)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(hex: "F8F8F8").ignoresSafeArea())
+        .transition(.opacity)
     }
 
     private func statCard(icon: String, value: String, label: String) -> some View {
@@ -452,7 +510,9 @@ struct PhotoMissionView: View {
             }
             capturedImage = image
             Task {
+                let analysisStart = Date()
                 let result = await MissionPhotoVerifier.verify(image: image, mission: missionName, target: nil)
+                await MissionAnalyzing.holdFloor(since: analysisStart)
                 await MainActor.run {
                     verifyAttempts += 1
                     if result.pass {

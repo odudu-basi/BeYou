@@ -428,22 +428,29 @@ struct OnboardingCoordinator2: View {
                     totalSteps: totalSteps,
                     onNext: { sound in
                         alarmSoundName = sound
-                        withAnimation { currentStep = 25 }   // skip removed step 24 (rating)
+                        withAnimation { currentStep = 24 }
                     },
                     onBack: { withAnimation { currentStep = 22 } }
                 )
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
+            // MARK: 24 - Give us a rating (App Store review prompt)
+            case 24:
+                Onboarding2RatingView(
+                    currentStep: 24,
+                    totalSteps: totalSteps,
+                    onNext: { withAnimation { currentStep = 25 } },
+                    onBack: { withAnimation { currentStep = 23 } }
+                )
+                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+
             // MARK: 25 - Get out of bed 5x faster
-            // NOTE: the old step 24 "Give us a rating" (+ its requestReview() prompt) was removed.
-            // Step 23 now skips directly to 25, and 25's Back returns to 23. Step 24 is intentionally
-            // vacant; the progress bar is continuous, so the small gap isn't noticeable.
             case 25:
                 Onboarding2FasterView(
                     currentStep: 25,
                     totalSteps: totalSteps,
                     onNext: { withAnimation { currentStep = 26 } },
-                    onBack: { withAnimation { currentStep = 23 } }   // skip removed step 24 (rating)
+                    onBack: { withAnimation { currentStep = 24 } }
                 )
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
@@ -478,7 +485,13 @@ struct OnboardingCoordinator2: View {
                     currentStep: 28,
                     totalSteps: totalSteps,
                     alarmTime: idealWakeTimeFormatted,
-                    onNext: { withAnimation { currentStep = 29 } },
+                    onNext: {
+                        // Persist all onboarding answers to Supabase BEFORE the paywall, so users
+                        // who don't purchase are still captured (previously this only ran at the
+                        // final confirmation step, after the paywall — so non-payers were lost).
+                        UserProfileService.shared.saveOnboardingProfile(appState.onboardingData)
+                        withAnimation { currentStep = 29 }
+                    },
                     onBack: { withAnimation { currentStep = 27 } }
                 )
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
@@ -511,8 +524,11 @@ struct OnboardingCoordinator2: View {
                     onNext: {
                         SharedDataManager.shared.saveHasCompletedOnboarding(true)
                         SharedDataManager.shared.saveHasCompletedSetup(true)
-                        // Persist all onboarding answers to Supabase.
-                        UserProfileService.shared.saveOnboardingProfile(appState.onboardingData)
+                        // TikTok conversion event: user finished onboarding (a "registration").
+                        TikTokManager.shared.trackOnboardingComplete()
+                        // Onboarding answers are now persisted to Supabase earlier (step 28, before
+                        // the paywall) so non-payers are captured too. The later subscription sync
+                        // merges payment status onto that same device_id row.
                         appState.navigateTo(.main)
                     },
                     onBack: { withAnimation { currentStep = 30 } }

@@ -80,10 +80,10 @@ class AnalyticsManager {
 
     // MARK: - Subscription Events
 
-    func trackPaywallShown(placement: String) {
-        track("Paywall Shown", properties: [
-            "placement": placement
-        ])
+    func trackPaywallShown(placement: String, source: String? = nil) {
+        var props: [String: MixpanelType] = ["placement": placement]
+        if let source { props["source"] = source }
+        track("Paywall Shown", properties: props)
     }
 
     func trackSubscriptionPurchased() {
@@ -323,11 +323,13 @@ class AnalyticsManager {
 
     // MARK: - Paywall
 
-    func trackPaywallDismissed(placement: String, result: String) {
-        track("Paywall Dismissed", properties: [
+    func trackPaywallDismissed(placement: String, result: String, source: String? = nil) {
+        var props: [String: MixpanelType] = [
             "placement": placement,
             "result": result
-        ])
+        ]
+        if let source { props["source"] = source }
+        track("Paywall Dismissed", properties: props)
     }
 
     // MARK: - Engagement (P1)
