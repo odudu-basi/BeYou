@@ -2,6 +2,7 @@ import SwiftUI
 import RevenueCat
 import FamilyControls
 import SuperwallKit
+import AppsFlyerLib
 
 @available(iOS 16.0, *)
 @main
@@ -24,8 +25,13 @@ struct BeYouSwiftApp: App {
         // Configure Mixpanel analytics
         AnalyticsManager.shared.configure()
 
-        // Configure TikTok Ads SDK
-        TikTokManager.shared.configure()
+        // Configure AppsFlyer (MMP). CUID = RevenueCat's app user ID (already configured above)
+        // so installs/events can be cross-referenced between the two dashboards.
+        AppsFlyerManager.shared.configure(customerUserID: Purchases.shared.appUserID)
+
+        // Link the AppsFlyer install to RevenueCat so subscription/trial events attribute back to
+        // it (this is what replaces the old RevenueCat → TikTok webhook).
+        Purchases.shared.attribution.setAppsflyerID(AppsFlyerLib.shared().getAppsFlyerUID())
     }
 
     var body: some Scene {
@@ -47,7 +53,6 @@ struct BeYouSwiftApp: App {
                 .task {
                     // Track app open
                     AnalyticsManager.shared.trackAppOpened()
-                    TikTokManager.shared.trackAppOpen()
 
                     // Re-authorize FamilyControls on every launch
                     // Silent if already authorized; re-prompts only if lost (e.g., after update)

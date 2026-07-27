@@ -8,10 +8,10 @@ struct AlarmDismissFlowView: View {
     var exerciseSeconds: Int = 15   // recording duration for Push Ups / Squats
     let onDismissed: () -> Void
     /// Fired the moment the mission is recorded complete (before the completion/affirmation
-    /// screens). Passes whether this was a REAL wake-up (`true`) vs the follow-up wake-up check
-    /// (`false`). The host uses it to stop re-arming the alarm audio, and to decide whether to
-    /// show the streak celebration (real wake-ups only).
-    var onCompleted: ((_ isRealWakeup: Bool) -> Void)? = nil
+    /// screens) — always fires, so the host can stop re-arming the alarm audio. The Bool gates the
+    /// STREAK CELEBRATION: true only for a real wake-up that is the FIRST completion of the day
+    /// (not the wake-up check, not a 2nd alarm the same day).
+    var onCompleted: ((_ shouldCelebrateStreak: Bool) -> Void)? = nil
 
     @State private var didRecord = false
     @State private var showIntro = true
@@ -148,12 +148,16 @@ struct AlarmDismissFlowView: View {
 
         AlarmScheduler.completeMission(firedAlarmId: alarmId)
 
+        // Whether this is the FIRST completion of the day — captured BEFORE markCompleted() below.
+        // (For the wake-up check we never markCompleted, so this stays accurate.)
+        let wasFirstToday = !AlarmCompletionStore.hasCompleted()
+
         // Tell the host the mission is done so it stops re-arming the alarm audio when the app is
         // foregrounded on the completion/affirmation screens (that restart path could otherwise
         // replay a finished alarm and, on rapid background/foreground, crash the audio session).
-        // The flag is whether this is a REAL wake-up (not the follow-up wake-up check) — the host
-        // uses it to gate the streak celebration.
-        onCompleted?(!isWakeUpCheck)
+        // The flag gates the streak celebration: only a REAL wake-up that is the FIRST completion
+        // of the day celebrates (not the wake-up check, not a 2nd alarm the same day).
+        onCompleted?(!isWakeUpCheck && wasFirstToday)
 
         // Freeze the time-to-complete (alarm start → now) for the completion screen.
         completedElapsed = Date().timeIntervalSince(firedAt)
@@ -164,9 +168,6 @@ struct AlarmDismissFlowView: View {
 
         let wakeUps = UserDefaults.standard.integer(forKey: "totalWakeUps") + 1
         UserDefaults.standard.set(wakeUps, forKey: "totalWakeUps")
-
-        // Capture whether this is the first completion today *before* recording it.
-        let wasFirstToday = !AlarmCompletionStore.hasCompleted()
 
         // Records today for the streak + weekly trackers (Home & Insights).
         AlarmCompletionStore.markCompleted()

@@ -63,13 +63,7 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
     func syncEntitlementStatus(from info: RevenueCat.CustomerInfo) {
         self.customerInfo = info
         let wasProUser = self.isProUser
-        // Use the SAME criterion Superwall uses for its subscription status
-        // (`entitlements.activeInCurrentEnvironment`, see SuperwallService), NOT `isActive`. If the
-        // app checked `isActive` while Superwall checked `activeInCurrentEnvironment`, the two could
-        // disagree on an edge-case entitlement (e.g. an expired/tweaked trial) and deadlock the
-        // reactive gate — the app shows the gate while Superwall skips the paywall → blank screen.
-        let activeEntitlement = info.entitlements.activeInCurrentEnvironment["BeYou_Pro"]
-        self.isProUser = activeEntitlement != nil
+        self.isProUser = info.entitlements["BeYou_Pro"]?.isActive == true
 
         // Identify user in Mixpanel with RevenueCat ID
         let rcId = revenueCatUserId
@@ -77,8 +71,8 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
         AnalyticsManager.shared.setUserProperties([
             "revenuecat_id": rcId,
             "is_subscribed": isProUser,
-            "subscription_product": activeEntitlement?.productIdentifier ?? "",
-            "is_trial": activeEntitlement?.periodType == .trial
+            "subscription_product": info.entitlements["BeYou_Pro"]?.productIdentifier ?? "",
+            "is_trial": info.entitlements["BeYou_Pro"]?.periodType == .trial
         ])
 
         // Store RevenueCat ID in SharedDataManager for emails
@@ -88,8 +82,8 @@ class SubscriptionManager: NSObject, ObservableObject, PurchasesDelegate {
         UserProfileService.shared.syncSubscriptionStatus(
             revenueCatId: rcId,
             isSubscribed: isProUser,
-            isTrial: activeEntitlement?.periodType == .trial,
-            productId: activeEntitlement?.productIdentifier
+            isTrial: info.entitlements["BeYou_Pro"]?.periodType == .trial,
+            productId: info.entitlements["BeYou_Pro"]?.productIdentifier
         )
 
         if !hasResolvedEntitlements {

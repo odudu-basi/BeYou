@@ -524,8 +524,8 @@ struct OnboardingCoordinator2: View {
                     onNext: {
                         SharedDataManager.shared.saveHasCompletedOnboarding(true)
                         SharedDataManager.shared.saveHasCompletedSetup(true)
-                        // TikTok conversion event: user finished onboarding (a "registration").
-                        TikTokManager.shared.trackOnboardingComplete()
+                        // AppsFlyer conversion event: user finished onboarding (a "registration").
+                        AppsFlyerManager.shared.trackOnboardingComplete()
                         // Onboarding answers are now persisted to Supabase earlier (step 28, before
                         // the paywall) so non-payers are captured too. The later subscription sync
                         // merges payment status onto that same device_id row.

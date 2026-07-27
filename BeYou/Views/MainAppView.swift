@@ -80,11 +80,10 @@ struct MainAppView: View {
                         showAlarmMission = false
                         alertingAlarmId = nil
                     },
-                    onCompleted: { isRealWakeup in
+                    onCompleted: { shouldCelebrateStreak in
                         missionCompleted = true
-                        // TESTING: queue the streak celebration on every real alarm dismiss.
-                        // (Production: also require the day's first completion — wasFirstToday.)
-                        pendingStreakCelebration = isRealWakeup
+                        // Streak celebration shows only on the FIRST real completion of the day.
+                        pendingStreakCelebration = shouldCelebrateStreak
                     }
                 )
                 .environmentObject(appState)   // so the post-alarm affirmation card has appState

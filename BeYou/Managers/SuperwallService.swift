@@ -57,20 +57,21 @@ final class RCPurchaseController: PurchaseController {
             if result.userCancelled {
                 return .cancelled
             } else {
-                // TikTok conversion signal. If this purchase started a FREE TRIAL, report a
-                // (value-less) StartTrial — no money yet. If it's an immediate paid buy, report
-                // Subscribe with the real price. The actual trial→paid conversion is reported
-                // server-side later (RevenueCat webhook → TikTok Events API), since it happens
-                // days later, often with the app closed.
+                // AppsFlyer conversion signal (forwarded to TikTok via the AppsFlyer integration).
+                // If this purchase started a FREE TRIAL, report a (value-less) af_start_trial — no
+                // money yet. If it's an immediate paid buy, report af_purchase with the real price.
+                // The actual trial→paid conversion is reported server-side later via the
+                // RevenueCat → AppsFlyer integration, since it happens days later, often with the
+                // app closed.
                 let startedTrial = result.customerInfo.entitlements.active.values.contains {
                     $0.periodType == .trial || $0.periodType == .intro
                 }
                 if startedTrial {
-                    TikTokManager.shared.trackTrialStarted()
+                    AppsFlyerManager.shared.trackTrialStarted()
                 } else {
                     let value = NSDecimalNumber(decimal: storeProduct.price).doubleValue
                     let currency = storeProduct.currencyCode ?? "USD"
-                    TikTokManager.shared.trackSubscriptionPurchased(value: value, currency: currency)
+                    AppsFlyerManager.shared.trackSubscriptionPurchased(value: value, currency: currency)
                 }
                 return .purchased
             }

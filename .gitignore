@@ -30,6 +30,7 @@ BeYou/supabase/supabase/
 
 # Claude
 .claude/
+ios-sdk-logs.txt
 
 # Superwall skills tooling (installed via npx, not app code)
 .agents/

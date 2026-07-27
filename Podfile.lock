@@ -1,16 +1,18 @@
 PODS:
-  - TikTokBusinessSDK (1.6.0)
+  - AppsFlyerFramework (7.0.1):
+    - AppsFlyerFramework/Main (= 7.0.1)
+  - AppsFlyerFramework/Main (7.0.1)
 
 DEPENDENCIES:
-  - TikTokBusinessSDK
+  - AppsFlyerFramework
 
 SPEC REPOS:
   trunk:
-    - TikTokBusinessSDK
+    - AppsFlyerFramework
 
 SPEC CHECKSUMS:
-  TikTokBusinessSDK: 6fe49b5b06a24cfe6bf42da789e2f3c6ba39c0e3
+  AppsFlyerFramework: 5fbe1765e5cf2a6b6ee4d170e6992881ce3c251f
 
-PODFILE CHECKSUM: 4edc0024b8ca55863604c3bf6803197030685664
+PODFILE CHECKSUM: 151d56b17005c21587f5ef105bbdc53c32af7b61
 
 COCOAPODS: 1.16.2

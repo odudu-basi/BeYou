@@ -45,7 +45,6 @@
 		F08124532F6288FC0001263B /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08124522F6288FC0001263B /* WidgetKit.framework */; };
 		F08124552F6288FC0001263B /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F08124542F6288FC0001263B /* SwiftUI.framework */; };
 		F08124662F6288FE0001263B /* BeYouWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F08124512F6288FB0001263B /* BeYouWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		F0EC11542FD1430100169FF4 /* TikTokBusinessSDK in Frameworks */ = {isa = PBXBuildFile; productRef = F0EC11532FD1430100169FF4 /* TikTokBusinessSDK */; };
 		F0FCAC702F6CB83D006EDFD6 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */; };
 /* End PBXBuildFile section */
 
@@ -264,7 +263,6 @@
 				F00E077B2F5EA50500DBA69D /* UserNotifications.framework in Frameworks */,
 				F00E07792F5EA4FC00DBA69D /* DeviceActivity.framework in Frameworks */,
 				F075BCF52F664F4E000E1153 /* Mixpanel in Frameworks */,
-				F0EC11542FD1430100169FF4 /* TikTokBusinessSDK in Frameworks */,
 				F08123752F61115A0001263B /* RevenueCat in Frameworks */,
 				F075BCF82F6670E0000E1153 /* MixpanelSessionReplay in Frameworks */,
 				F0FCAC702F6CB83D006EDFD6 /* RevenueCatUI in Frameworks */,
@@ -420,7 +418,7 @@
 				F00E05CE2F5E0C9A00DBA69D /* Resources */,
 				F00E07422F5E659200DBA69D /* Embed Foundation Extensions */,
 				F00E078E2F5F23F700DBA69D /* Embed ExtensionKit Extensions */,
-				40E51593E99A551D74A43555 /* [CP] Embed Pods Frameworks */,
+				E8C25C07FB3CDE77F5295CDB /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -440,7 +438,6 @@
 				F075BCF42F664F4E000E1153 /* Mixpanel */,
 				F075BCF72F6670E0000E1153 /* MixpanelSessionReplay */,
 				F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */,
-				F0EC11532FD1430100169FF4 /* TikTokBusinessSDK */,
 			);
 			productName = BeYou;
 			productReference = F00E05D02F5E0C9A00DBA69D /* BeYou.app */;
@@ -617,7 +614,6 @@
 				F08123762F6117790001263B /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
 				F075BCF32F664F4E000E1153 /* XCRemoteSwiftPackageReference "mixpanel-swift" */,
 				F075BCF62F6670E0000E1153 /* XCRemoteSwiftPackageReference "mixpanel-ios-session-replay-package" */,
-				F0EC11522FD1430100169FF4 /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F00E05D12F5E0C9A00DBA69D /* Products */;
@@ -704,27 +700,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		40E51593E99A551D74A43555 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		45A06A11D1251B88F813BC1E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -745,6 +720,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		E8C25C07FB3CDE77F5295CDB /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BeYou/Pods-BeYou-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -980,7 +976,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -1034,7 +1030,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -1496,14 +1492,6 @@
 				minimumVersion = 4.14.0;
 			};
 		};
-		F0EC11522FD1430100169FF4 /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/tiktok/tiktok-business-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.6.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1526,11 +1514,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F08123762F6117790001263B /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
 			productName = SuperwallKit;
-		};
-		F0EC11532FD1430100169FF4 /* TikTokBusinessSDK */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F0EC11522FD1430100169FF4 /* XCRemoteSwiftPackageReference "tiktok-business-ios-sdk" */;
-			productName = TikTokBusinessSDK;
 		};
 		F0FCAC6F2F6CB83D006EDFD6 /* RevenueCatUI */ = {
 			isa = XCSwiftPackageProductDependency;
