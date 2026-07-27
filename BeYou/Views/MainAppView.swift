@@ -15,6 +15,10 @@ struct MainAppView: View {
     /// on screen (completion + affirmation screens), this stops the foreground handler from
     /// re-arming the alarm audio for an alarm that's already finished. Reset when a new mission opens.
     @State private var missionCompleted = false
+    /// Queued when a REAL alarm (not the wake-up check) completes; consumed when the alarm flow is
+    /// dismissed to show the streak celebration on the home screen.
+    @State private var pendingStreakCelebration = false
+    @State private var showStreakCelebration = false
     @AppStorage("completedInterventionCount") private var completedInterventionCount: Int = 0
     @AppStorage("hasWrittenReview") private var hasWrittenReview: Bool = false
     @AppStorage("nextWriteReviewAt") private var nextWriteReviewAt: Int = 3
@@ -76,11 +80,30 @@ struct MainAppView: View {
                         showAlarmMission = false
                         alertingAlarmId = nil
                     },
-                    onCompleted: {
+                    onCompleted: { isRealWakeup in
                         missionCompleted = true
+                        // TESTING: queue the streak celebration on every real alarm dismiss.
+                        // (Production: also require the day's first completion — wasFirstToday.)
+                        pendingStreakCelebration = isRealWakeup
                     }
                 )
                 .environmentObject(appState)   // so the post-alarm affirmation card has appState
+            }
+        }
+        // Streak celebration overlay — shown on the home screen after a real alarm completes.
+        // Sits over the slightly-blurred app; tapping continue dismisses it and THEN lets the
+        // review prompt evaluate (see onContinue), so the two never overlap.
+        .overlay {
+            if showStreakCelebration {
+                StreakCelebrationView(
+                    completedDays: AlarmCompletionStore.load(),
+                    streak: AlarmCompletionStore.currentStreak(),
+                    onContinue: {
+                        withAnimation(.easeInOut(duration: 0.2)) { showStreakCelebration = false }
+                        showReviewPromptIfNeeded(afterDelay: 0.4)
+                    }
+                )
+                .transition(.opacity)
             }
         }
         .onChange(of: scenePhase) { newPhase in
@@ -142,8 +165,19 @@ struct MainAppView: View {
                 // was tapped mid-mission) so it can't silently re-open the mission later.
                 UserDefaults.standard.removeObject(forKey: "pendingMissionAlarmID")
 
-                // If the just-completed alarm queued a review prompt, show it now.
-                showReviewPromptIfNeeded(afterDelay: 0.8)
+                // Deterministic sequencing (NO timer race): if a streak celebration is queued, show
+                // it FIRST once the dismiss transition settles. The review prompt is intentionally
+                // NOT scheduled here in that case — it's evaluated only after the user taps
+                // "Continue" on the celebration (see the overlay's onContinue). Otherwise the
+                // review prompt shows as it did before.
+                if pendingStreakCelebration {
+                    pendingStreakCelebration = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        withAnimation(.easeInOut(duration: 0.25)) { showStreakCelebration = true }
+                    }
+                } else {
+                    showReviewPromptIfNeeded(afterDelay: 0.8)
+                }
             }
         }
         .onChange(of: appState.isInterventionActive) { isActive in
@@ -272,7 +306,7 @@ struct MainAppView: View {
     /// first completion) over the custom "Write a Review" sheet (days 2–3 / every 5th). Guarded so
     /// it never interrupts a mission or the intervention flow.
     private func showReviewPromptIfNeeded(afterDelay delay: Double) {
-        guard !hasWrittenReview, !showInterventionSheet, !showAlarmMission else { return }
+        guard !hasWrittenReview, !showInterventionSheet, !showAlarmMission, !showStreakCelebration else { return }
 
         if ReviewPromptManager.pendingNativeReview {
             ReviewPromptManager.pendingNativeReview = false

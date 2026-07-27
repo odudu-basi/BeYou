@@ -95,3 +95,47 @@ TikTok event in the AppsFlyer partner config so campaigns keep optimizing.
 - `BeYou/BeYouSwiftApp.swift` — `TikTokManager.shared.configure()` in `init()` (add AppsFlyer init here)
 - Podfile / SPM — TikTok SDK is integrated twice (CocoaPods + SPM); consolidate/remove; add AppsFlyer
 - ATT prompt handling — AppsFlyer attribution quality depends on the ATT flow
+
+---
+
+## UPDATE — 2026-07-26 · MIGRATION IS GO (context for the fresh session)
+
+**Why now:** TikTok SDK event delivery is broken. Root cause = the TikTok SDK is integrated
+**twice** (CocoaPods `pod 'TikTokBusinessSDK'` AND SPM `tiktok-business-ios-sdk`) → init and
+`trackTTEvent` resolve to different SDK copies → manual events are dropped. Confirmed in TikTok
+Events Manager: ~700 new users in a week but **0 Registrations**, SDK data source shows only
+`LaunchApp`=144 (Install/Purchase=0); SKAN shows installs working (278) + 2 purchases, but
+trials/subscribes can't be optimized. So we're moving to AppsFlyer now.
+
+**Credentials**
+- Apple App ID: `6760232059`
+- AppsFlyer **Dev Key**: stored in the AppsFlyer MCP env (`DEV_KEY` in `~/.claude.json`) and the
+  AppsFlyer dashboard. (Will go into the app's `Secrets`.)
+- **AppsFlyer SDK MCP** (`appsFlyer-sdk-mcp`) is added to `~/.claude.json` — use its integration
+  wizard after restart.
+
+**Phase 2 — code (do in ONE build):**
+1. Add AppsFlyer SDK (CocoaPods `pod 'AppsFlyerFramework'` + `pod install`, or via the MCP wizard).
+2. New `AppsFlyerManager`: init with Dev Key + App ID `6760232059`, ATT handling, start.
+3. Migrate events: install (auto), trial start → `af_start_trial`, straight paid → `af_purchase`,
+   onboarding complete → `af_complete_registration`, app open. (Replace `TikTokManager` calls in
+   `SuperwallService`, `OnboardingCoordinator2`, `BeYouSwiftApp`.)
+4. **Link AppsFlyer ID ↔ RevenueCat**: pass the AppsFlyer ID to RevenueCat as a subscriber
+   attribute so RevenueCat can attribute subscription events to the AppsFlyer install.
+5. **Remove the TikTok SDK** — BOTH the CocoaPods pod AND the SPM package, plus `TikTokManager`.
+   Fixes the double-integration bug; leaves AppsFlyer as the sole SKAN owner.
+
+**Trial→paid conversions (server-side):** use the **RevenueCat → AppsFlyer integration** (RevenueCat
+dashboard → Integrations → AppsFlyer) → AppsFlyer → TikTok. This REPLACES the RevenueCat→TikTok
+webhook (`supabase/functions/revenuecat-tiktok-webhook`). **Disable/remove that webhook** so TikTok
+doesn't double-count the conversion. (AppsFlyer SDK alone can't see off-device conversions.)
+
+**Dashboard (user):** AppsFlyer → connect TikTok as integrated partner, map events, configure the
+**SKAN conversion schema to include the trial event** (so iOS can attribute trials). RevenueCat →
+enable the AppsFlyer integration.
+
+**Then:** ship a new build (App Store review) → verify events land in AppsFlyer + TikTok → start the
+TikTok **trial campaign** optimizing for the trial event.
+
+**Uncommitted local work** (built, NOT committed): streak celebration feature +
+`isProUser`→`activeInCurrentEnvironment` alignment fix. Last pushed checkpoint = commit `05e3806`.

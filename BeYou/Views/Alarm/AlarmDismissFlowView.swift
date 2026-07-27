@@ -8,9 +8,10 @@ struct AlarmDismissFlowView: View {
     var exerciseSeconds: Int = 15   // recording duration for Push Ups / Squats
     let onDismissed: () -> Void
     /// Fired the moment the mission is recorded complete (before the completion/affirmation
-    /// screens). The host uses this to stop re-arming the alarm audio when the app is
-    /// foregrounded on those post-completion screens.
-    var onCompleted: (() -> Void)? = nil
+    /// screens). Passes whether this was a REAL wake-up (`true`) vs the follow-up wake-up check
+    /// (`false`). The host uses it to stop re-arming the alarm audio, and to decide whether to
+    /// show the streak celebration (real wake-ups only).
+    var onCompleted: ((_ isRealWakeup: Bool) -> Void)? = nil
 
     @State private var didRecord = false
     @State private var showIntro = true
@@ -150,7 +151,9 @@ struct AlarmDismissFlowView: View {
         // Tell the host the mission is done so it stops re-arming the alarm audio when the app is
         // foregrounded on the completion/affirmation screens (that restart path could otherwise
         // replay a finished alarm and, on rapid background/foreground, crash the audio session).
-        onCompleted?()
+        // The flag is whether this is a REAL wake-up (not the follow-up wake-up check) — the host
+        // uses it to gate the streak celebration.
+        onCompleted?(!isWakeUpCheck)
 
         // Freeze the time-to-complete (alarm start → now) for the completion screen.
         completedElapsed = Date().timeIntervalSince(firedAt)
